@@ -20,6 +20,15 @@ export type SearchParams = {
   start?: number; // pagination offset
 };
 
+const decodeHtmlEntities = (str: string): string =>
+  str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+
 /**
  * Parse single song result
  * @param html HTML string from parseSongsFromSearch
@@ -29,14 +38,14 @@ export const parseSongFromTable = (html: string | undefined): Song | null => {
   if (!html) return null;
 
   const songId = Number.parseInt(
-    html.match(/show_detail\((\d+)\)/)?.[1] ?? "-1",
+    html.match(/show_detail\((\d+)\)/)?.[1] ?? "0",
   );
   const songMetadata = [
     ...html.matchAll(/<td\s+.*?>(?:<a.*?>)?(.*)<\/td>/gm),
   ].map((m) => m?.[1]);
 
-  const artist = songMetadata?.[0];
-  const title = songMetadata?.[1];
+  const artist = songMetadata?.[0] ? decodeHtmlEntities(songMetadata[0]) : undefined;
+  const title = songMetadata?.[1] ? decodeHtmlEntities(songMetadata[1]) : undefined;
   const languages = songMetadata?.[6]?.toLowerCase().split(", ");
 
   if (!songId || !artist || !title || !languages) return null;

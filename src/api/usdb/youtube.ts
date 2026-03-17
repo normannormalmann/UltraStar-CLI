@@ -24,7 +24,13 @@ export const parseYoutubeLinkFromComment = (
   const [day, month, year] = dateStr.split(".") as [string, string, string];
   const [hour, minute] = timeStr.split(":") as [string, string];
 
-  const date = new Date(`${month}.${day}.${year} ${hour}:${minute}`);
+  const date = new Date(
+    Number(year),
+    Number(month) - 1,
+    Number(day),
+    Number(hour),
+    Number(minute),
+  );
 
   const link = linkRaw.split("/").pop();
   if (!link) return null;

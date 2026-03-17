@@ -17,3 +17,20 @@ export const checkYtDlpAvailable: Effect.Effect<boolean, never, never> =
       }),
     catch: (e) => (e instanceof Error ? e : new Error("yt-dlp check failed")),
   }).pipe(Effect.catchAll(() => Effect.succeed(false)));
+
+/**
+ * Check if ffmpeg is available by running `ffmpeg -version`.
+ * Succeeds with true when exit code is 0; otherwise false. Never fails.
+ */
+export const checkFfmpegAvailable: Effect.Effect<boolean, never, never> =
+  Effect.tryPromise({
+    try: async () =>
+      await new Promise<boolean>((resolve) => {
+        const child = spawn("ffmpeg", ["-version"], {
+          stdio: ["ignore", "ignore", "ignore"],
+        });
+        child.on("error", () => resolve(false));
+        child.on("close", (code) => resolve(code === 0));
+      }),
+    catch: (e) => (e instanceof Error ? e : new Error("ffmpeg check failed")),
+  }).pipe(Effect.catchAll(() => Effect.succeed(false)));

@@ -51,6 +51,7 @@ export const downloadYoutubeVideoWithProgress = (
   link: string,
   path: string,
   onProgress: (p: YoutubeDownloadProgress) => void,
+  cookiesBrowser?: string,
 ): Effect.Effect<void, Error, never> =>
   Effect.tryPromise({
     try: async () => {
@@ -59,12 +60,21 @@ export const downloadYoutubeVideoWithProgress = (
         "ext,res:1080",
         "-o",
         path,
+        "--merge-output-format",
+        "mp4",
         "--quiet",
         "--newline",
-        "--no-warnings",
         "--progress",
         "--progress-template",
         `{"type": "progress", "downloaded": "%(progress.downloaded_bytes)s", "total": "%(progress.total_bytes)s", "frag_index": "%(progress.fragment_index)s", "frag_count": "%(progress.fragment_count)s"}`,
+        ...(cookiesBrowser
+          ? (() => {
+              const val = cookiesBrowser.replace(/^["']+|["']+$/g, "").trim();
+              return /\.(txt|json)$/i.test(val) || val.includes("\\") || val.includes("/")
+                ? ["--cookies", val]
+                : ["--cookies-from-browser", val];
+            })()
+          : []),
         "--",
         link,
       ];
@@ -73,6 +83,8 @@ export const downloadYoutubeVideoWithProgress = (
         const child = spawn("yt-dlp", args, {
           stdio: ["ignore", "pipe", "pipe"],
         });
+
+        const stderrLines: string[] = [];
 
         const parseAndEmit = (line: string) => {
           try {
@@ -146,9 +158,11 @@ export const downloadYoutubeVideoWithProgress = (
 
         child.stderr.setEncoding("utf8");
         child.stderr.on("data", (chunk) => {
-          // do not print to console; parse progress only
           const text = chunk as string;
-          text.split(/[\r\n]+/).forEach(parseAndEmit);
+          text.split(/[\r\n]+/).forEach((line) => {
+            if (line.trim()) stderrLines.push(line.trim());
+            parseAndEmit(line);
+          });
         });
         child.stdout.setEncoding("utf8");
         child.stdout.on("data", (chunk) => {
@@ -162,7 +176,8 @@ export const downloadYoutubeVideoWithProgress = (
             onProgress({ percent: 1 });
             resolve();
           } else {
-            reject(new Error(`yt-dlp download failed (code ${code})`));
+            const detail = stderrLines.slice(-8).join(" | ");
+            reject(new Error(`yt-dlp download failed (code ${code})${detail ? `: ${detail}` : ""}`));
           }
         });
       });

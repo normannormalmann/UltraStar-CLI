@@ -8,6 +8,19 @@ export function detectPlatform(): Platform {
   return "unknown";
 }
 
+export function ffmpegInstallHint(): string {
+  switch (detectPlatform()) {
+    case "windows":
+      return "Install with `winget install Gyan.FFmpeg` or `choco install ffmpeg`.";
+    case "mac":
+      return "Install with `brew install ffmpeg`.";
+    case "linux":
+      return "Install with your package manager, e.g. `apt install ffmpeg`.";
+    default:
+      return "See https://ffmpeg.org/download.html";
+  }
+}
+
 export function ytDlpInstallHint(): string {
   const plat = detectPlatform();
   switch (plat) {

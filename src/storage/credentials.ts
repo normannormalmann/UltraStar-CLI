@@ -19,7 +19,7 @@ const readJsonFile = (
       catch: (e) =>
         e instanceof Error ? e : new Error("Failed to read credentials"),
     }),
-    () => Effect.succeed(null as unknown as StoredCredentials),
+    () => Effect.succeed<StoredCredentials | null>(null),
   );
 
 const writeJsonFile = (

@@ -13,7 +13,10 @@ export const HelpRow: FC<{ mode: Mode; canDownload?: boolean }> = ({
         <Text color="white" bold>
           Tips:
         </Text>{" "}
-        <Text dimColor>Tab: switch field • Enter: search • Esc: quit</Text>
+        <Text dimColor>
+          Tab: switch field • Enter: search
+          {canDownload ? " • v: repair videos" : ""} • Esc: quit
+        </Text>
       </Text>
     );
   }
@@ -24,8 +27,8 @@ export const HelpRow: FC<{ mode: Mode; canDownload?: boolean }> = ({
       </Text>{" "}
       {canDownload ? (
         <Text dimColor>
-          ↑/↓: select • Enter: download • ←/→: page • e: edit search • r:
-          refresh • Esc: back
+          ↑/↓: select • Enter: download • a: all on page • A: all pages • ←/→:
+          page • e: edit • r: refresh • Esc: back
         </Text>
       ) : (
         <Text dimColor>

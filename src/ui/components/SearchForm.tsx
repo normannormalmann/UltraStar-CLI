@@ -7,7 +7,6 @@ export type FocusedField = "artist" | "title";
 export type SearchFormProps = {
   artist: string;
   title: string;
-  limit: number;
   focusedField: FocusedField;
   setArtist: (v: string) => void;
   setTitle: (v: string) => void;
