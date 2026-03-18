@@ -46,7 +46,10 @@ export const parseSongFromTable = (html: string | undefined): Song | null => {
 
   const artist = songMetadata?.[0] ? decodeHtmlEntities(songMetadata[0]) : undefined;
   const title = songMetadata?.[1] ? decodeHtmlEntities(songMetadata[1]) : undefined;
-  const languages = songMetadata?.[6]?.toLowerCase().split(", ");
+  // Type guard: ensure songMetadata[6] exists and is a string before calling toLowerCase()
+  const languages = typeof songMetadata?.[6] === "string"
+    ? songMetadata[6].toLowerCase().split(", ")
+    : undefined;
 
   if (!songId || !artist || !title || !languages) return null;
 

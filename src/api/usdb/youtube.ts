@@ -32,7 +32,9 @@ export const parseYoutubeLinkFromComment = (
     Number(minute),
   );
 
-  const link = linkRaw.split("/").pop();
+  // Return the full URL instead of just the ID
+  // This allows yt-dlp to handle all YouTube URL formats
+  const link = linkRaw;
   if (!link) return null;
 
   return {
@@ -45,7 +47,7 @@ export const parseYoutubeLinks = (html: string): YoutubeLink[] => {
   const comments = parseComments(html)
     .map((c) =>
       c.match(
-        /<td>(\d+\.\d+\.\d+) - (\d+:\d+)[\s\S]*src="http(.*?(?=youtu\.?be).*?)"/m,
+        /<td>(\d+\.\d+\.\d+) - (\d+:\d+)[\s\S]*src="(https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)[\w-]+)"/m,
       ),
     )
     .map(parseYoutubeLinkFromComment)

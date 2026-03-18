@@ -1,0 +1,744 @@
+<html><plasmo-csui id="ff-overlay-container"><template shadowrootmode="open"><style>#plasmo-shadow-container > div {
+  pointer-events: none !important;
+  background: none !important;
+  position: fixed !important;
+  inset: 0 !important;
+}
+
+.main_top_container_ff {
+  width: 400px;
+}
+
+.popup_container_wrapper_ff {
+  background-color: #fff;
+}
+
+.popup_container_wrapper_ff * {
+  font-family: PoppinsRegular;
+}
+
+.popup_container_wrapper_ff img {
+  background-color: #0000;
+}
+
+.popup_container_ff {
+  box-shadow: 0 5px 20px #1e1e2212;
+}
+
+.popup_div_ff {
+  box-sizing: border-box;
+  background-color: #fff;
+  width: 100%;
+  padding: 24px;
+}
+
+.main_component_ff {
+  width: 100%;
+  padding-bottom: 0 !important;
+}
+
+.popup_top_icon_div_ff {
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  display: flex;
+}
+
+.popup_top_icon_div_ff .btn_canvas_ff {
+  display: inline-flex;
+}
+
+.popup_top_icon_div_ff .ff_popup_top_image {
+  z-index: 0;
+  width: 100%;
+  height: auto;
+  position: absolute;
+  inset: 0 0 auto;
+}
+
+.popup_top_icon_btn_ff {
+  cursor: pointer;
+  z-index: 1;
+  background: none;
+  border: none;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  font-size: 20px;
+  display: inline-flex;
+}
+
+.popup_top_icon_btn_ff img {
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.popup_top_icon_btn_ff:focus {
+  outline: none;
+}
+
+.dot_ff {
+  background-color: red;
+  border-radius: 50%;
+  width: 15px;
+  height: 15px;
+}
+
+.dot_ff-top-right {
+  position: absolute;
+  top: 33%;
+  right: 16px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot_ff {
+    animation: none;
+  }
+}
+
+.topbar_cross_icon_ff {
+  cursor: pointer;
+  background: #eaeaea;
+  border: 2px solid #fff;
+  border-radius: 50%;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: flex;
+}
+
+.topbar_cross_icon_ff img {
+  width: 12px;
+  height: 12px;
+}
+
+.btn_canvas_ff .topbar_detail_submit_btn_ff {
+  cursor: pointer;
+  color: #6e75ff;
+  background: #f0f0ff;
+  border: none;
+  border-radius: 5px;
+  justify-content: center;
+  align-items: center;
+  min-width: 108px;
+  min-height: 40px;
+  margin: 0;
+  padding: 10px 30px;
+  font-family: PoppinsRegular;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  display: flex;
+}
+
+.btn_canvas_ff .topbar_detail_submit_btn_ff:hover {
+  box-shadow: none;
+  color: #fff;
+  cursor: pointer;
+  background: #6e75ff;
+  border: none;
+  outline: none;
+}
+
+.btn_canvas_ff .topbar_detail_okay_btn_ff {
+  cursor: pointer;
+  color: #555;
+  background: #eee;
+  border: none;
+  border-radius: 5px;
+  justify-content: center;
+  align-items: center;
+  min-width: 108px;
+  min-height: 40px;
+  margin: 0;
+  padding: 10px 30px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  display: flex;
+}
+
+.btn_canvas_ff .topbar_detail_okay_btn_ff:hover, .btn_canvas_ff .topbar_detail_okay_btn_ff:focus {
+  box-shadow: none;
+  color: #eee;
+  cursor: pointer;
+  background: #555;
+  border: none;
+  outline: none;
+}
+
+.btn_canvas_ff .topbar_detail_submit_btn_ff:disabled, .btn_canvas_ff .topbar_detail_okay_btn_ff:disabled {
+  color: #696969 !important;
+  background-color: #d3d3d3 !important;
+}
+
+.spaced_icon_ff {
+  margin-left: 5px;
+  background-color: #0000 !important;
+}
+
+.toggle_btn_ff {
+  justify-content: center;
+  align-items: center;
+  padding: 6px 0 18px;
+  display: flex;
+  position: relative;
+}
+
+.create_notification_container_ff {
+  cursor: auto;
+  box-sizing: border-box;
+  z-index: 99999;
+  pointer-events: initial;
+  background-color: #fff;
+  border: none;
+  border-radius: 8px;
+  flex-direction: column;
+  align-items: flex-start;
+  width: 512px;
+  margin-top: 16px;
+  padding: 24px;
+  position: absolute;
+  inset: 20px 100px auto auto;
+  box-shadow: 0 0 10px;
+}
+
+plasmo-csui#ff-overlay-container, plasmo-csui#real-time-panel {
+  z-index: 999;
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+}
+
+.ff_input_container {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: -webkit-fill-available;
+  display: flex;
+}
+
+.ff_input_container .input_input {
+  resize: none;
+  background: none;
+  border: 1px solid #f2f4f7;
+  border-radius: 8px;
+  width: -webkit-fill-available;
+  height: 20px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 20px;
+  box-shadow: none !important;
+  color: #475467 !important;
+  padding: 8px 16px !important;
+  font-family: Roboto !important;
+  font-size: 14px !important;
+}
+
+.ff_input_container .input_input:focus-visible {
+  outline: none;
+}
+
+.ff_input_container .input_label {
+  letter-spacing: -.01em;
+  color: #101828;
+  background-color: #0000;
+  padding-bottom: 8px;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 20px;
+}
+
+.ff_input_container .input_description {
+  letter-spacing: -.01em;
+  color: #878f97;
+  background-color: #0000;
+  margin: 0;
+  padding-bottom: 8px;
+  font-family: Roboto;
+  font-size: 14px;
+  font-style: normal;
+  font-weight: 400;
+}
+
+.input_icon_container {
+  border: 1px solid #f2f4f7;
+  border-radius: 8px;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 8px;
+  width: -webkit-fill-available;
+  padding-left: 16px;
+  display: flex;
+  border-bottom-right-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.input_icon_container .input_input {
+  border: none;
+  padding-left: 0 !important;
+}
+
+.ff_select_container {
+  background: none;
+  border: none;
+  border-radius: 4px;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: -webkit-fill-available;
+  display: flex;
+  position: relative;
+}
+
+.ff_select_option_list_container {
+  z-index: 1;
+  background: #fff;
+  border: 1px solid #f2f4f7;
+  border-top: 0;
+  border-radius: 0 0 8px 8px;
+  width: -webkit-fill-available;
+  max-height: 80px;
+  margin: 0;
+  padding: 10px;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  overflow-y: scroll;
+}
+
+.ff_select_option_list {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-x: hidden;
+}
+
+.ff_select_option_item {
+  color: #475467;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  align-self: stretch;
+  align-items: center;
+  gap: 8px;
+  min-height: 16px;
+  padding: 8px;
+  display: flex;
+  overflow: hidden;
+}
+
+.ff_select_option_item:hover, .ff_select_option_item:focus {
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.ff_select_option_item span {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  background: none;
+  overflow: hidden;
+}
+
+.ff_select_search {
+  border-bottom-right-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+}
+
+.ff_select_dropdown_container {
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+  margin-top: 10px;
+  margin-bottom: 55px;
+  display: flex;
+  position: relative;
+}
+
+.topbar_heading_box_ff {
+  flex-direction: row;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+}
+
+.topbar_icon_ff {
+  justify-content: center;
+  align-items: center;
+  margin-right: 10px;
+  display: flex;
+}
+
+.topbar_middle_icon_ff {
+  justify-content: flex-start;
+  align-items: center;
+  margin-bottom: 1rem;
+  display: flex;
+}
+
+.topbar_detail_head_ff {
+  text-align: left;
+  letter-spacing: -.01em;
+  color: #22262a;
+  border: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: PoppinsRegular;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+  font-family: PoppinsMedium !important;
+}
+
+.topbar_detail_body_ff {
+  letter-spacing: 0;
+  align-items: flex-start;
+  margin: 16px 0 17px;
+  padding: 0;
+  display: flex;
+}
+
+.topbar_detail_para_ff {
+  width: 100%;
+  margin: 0;
+}
+
+.topbar_detail_para_ff .topbar_detail_text {
+  color: #484f56;
+  letter-spacing: -.01em;
+  margin: 0;
+  padding: 0;
+  font-family: PoppinsRegular;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 21px;
+}
+
+.topbar_detail_para_ff .topbar_detail_text_last {
+  color: #878f97;
+  letter-spacing: -.01em;
+  margin: 0;
+  padding-top: 8px;
+  padding-bottom: 2px;
+  font-family: PoppinsRegular;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.topbar_detail_static_arrow_ff {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+}
+
+.topbar_detail_static_arrow_ff img {
+  width: 24px;
+  height: 26px;
+  display: inline;
+}
+
+.topbar_detail_btns_ff {
+  justify-content: space-between;
+  width: 100%;
+  display: flex;
+}
+
+.narrow_btns_ff {
+  width: 70% !important;
+}
+
+.review_btns_ff {
+  gap: 1rem;
+  justify-content: flex-start !important;
+  width: 70% !important;
+}
+
+.topbar_detail_submit_btn_ff, .topbar_detail_okay_btn_ff {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  overflow: hidden;
+}
+
+.dot_ff {
+  border-radius: 50%;
+  flex-shrink: 0;
+  justify-content: center;
+  align-items: center;
+  width: 8px;
+  height: 8px;
+  display: flex;
+}
+
+.success_dot_ff {
+  background-color: #12b76a !important;
+}
+
+.warning_dot_ff {
+  background-color: #f08c00 !important;
+}
+
+.error_dot_ff {
+  background-color: red !important;
+}
+
+.large_dot_ff {
+  width: 12px !important;
+  height: 12px !important;
+}
+
+.medium_dot_ff {
+  width: 10px !important;
+  height: 10px !important;
+}
+
+.small_dot_ff {
+  width: 6px !important;
+  height: 6px !important;
+}
+
+</style><div id="plasmo-shadow-container" style="z-index: 2147483647; position: relative;"><div id="plasmo-overlay-0" class="plasmo-csui-container" style="display: flex; position: absolute; top: 0px; left: 0px;"></div></div></template></plasmo-csui><head>
+<meta http-equiv="Content-Type" content="text/html; charset=" utf-8"="">
+<link rel="SHORTCUT ICON" href="images/browser_icon.ico">
+<link title="USDB" href="https://usdb.animux.de/scripts/opensearch_desc.xml" type="application/opensearchdescription+xml" rel="search">
+<link rel="stylesheet" href="style/css.css?ts=1719929515" type="text/css">
+<link rel="stylesheet" href="style/niksac.css" type="text/css">
+<link rel="stylesheet" href="style/l19g2004.css" type="text/css">
+<link rel="alternate" type="application/rss+xml" title="US New Songs Top 10" href="rss/rss_new_top10.php">
+<link rel="alternate" type="application/rss+xml" title="US Downloads Top 10" href="rss/rss_downloads_top10.php">
+
+<title>USDB - 2raumwohnung - Wir trafen uns in einem Garten</title>
+<style>@font-face { font-family: DMSans; src: url('chrome-extension://meimoidfecamngeoanhnpdjjdcefoldn/assets/fonts/DMSans-Regular.ttf'); }@font-face { font-family: PoppinsMedium; src: url('chrome-extension://meimoidfecamngeoanhnpdjjdcefoldn/assets/fonts/Poppins-Medium.otf'); }@font-face { font-family: PoppinsRegular; src: url('chrome-extension://meimoidfecamngeoanhnpdjjdcefoldn/assets/fonts/Poppins-Regular.otf'); }@font-face { font-family: Roboto; src: url('chrome-extension://meimoidfecamngeoanhnpdjjdcefoldn/assets/fonts/Roboto-Regular.ttf'); }@font-face { font-family: Inter; src: url('chrome-extension://meimoidfecamngeoanhnpdjjdcefoldn/assets/fonts/Inter-VariableFont_opsz,wght.ttf'); }</style></head>
+<body onload="getCookieCounter(&quot;Songs selected&quot;)">
+
+
+<center></center><table width="100%" cellspacing="0" cellpadding="0" border="0">
+	<tbody><tr>
+
+			<td width="20%" valign="top">
+    <table class="tablebg" width="100%" cellspacing="1">
+
+		<tbody><tr><th><span class="syntaxcomment style3"><b>Options</b></span></th></tr>
+			<tr>
+
+				<td class="row1"><b class="nav">Options</b>
+
+			<ul class="nav" style="margin: 0px; padding: 0px; list-style-type: none; line-height: 175%;">
+
+	
+			<li>» <a href="?link=home" class="Linkz">Home</a></li>
+			<li>» <a href="?link=browse" class="Linkz">Browse Songs</a></li>
+			<li>» <a href="?link=singstar_editions" class="Linkz">Singstar Editions</a></li>
+			<li>» <a href="?link=addsongs" class="Linkz">Add Songs</a></li>
+			<li>» <a href="?link=calendar" class="Linkz">Song Calendar</a></li>
+			<li>» <a href="?link=pm" class="Linkz">Private Messages</a></li>
+			<li>» <a href="?link=profil" class="Linkz">Profile</a></li>
+			<li>» <a href="?link=profil&amp;edit=Einstellungen" class="Linkz">Settings</a></li>
+			<li>» <a href="?link=userlist" class="Linkz">Userlist</a></li>
+			<li>» <a href="?link=logout" class="Linkz"><font color="red">Logout</font></a></li>
+			<li>» <a href="?link=feature_request" class="Linkz">Feature- &amp; Buglist</a></li>
+			<li>» <a href="?link=say_smthng" class="Linkz">Say Something</a></li>
+			<li>» <a href="?link=wishlist" class="Linkz">Wishlist</a></li></ul>
+			</td>
+		</tr>
+	</tbody></table>
+</td><td><img src="images/spacer.gif" width="4" alt=""></td>
+
+<td width="80%" valign="top">
+
+<script async="" src="/stats/"></script><script src="scripts/ziparchiv.js" type="text/javascript"></script>
+
+
+
+<center></center><table class="tablebg" width="100%" cellspacing="1" id="tablebg">
+
+	<tbody><tr>
+		<th colspan="2" valign="middle"><span class="syntaxcomment style3"><b>2raumwohnung - Wir trafen uns in einem Garten</b></span></th>
+	</tr>
+
+	<tr>
+		<td class="row3" colspan="2">
+		<span class="gen">Welcome <b>anon_boy</b>, you've got <a href="?link=pm"><span class="style_pm">no</span> messages</a><br><br></span>
+		</td>
+	</tr>
+
+<tr><td>Ziparchiv: <a href="?link=ziparchiv"><b><span id="countertext">1</span></b></a> Songs selected</td></tr><tr><td class="row1">
+	<script type="text/javascript">
+function clean()
+{
+if (document.getElementById("txtinput").value=="Your Comment..." )
+document.getElementById("txtinput").value = '';
+}
+
+function setTextarea(pTextareaID,pText)
+{
+
+if(pText != '[youtube]null[/youtube]' && pText != '[dailymotion]null[/dailymotion]') {
+var text = document.getElementById(pTextareaID).value;
+
+document.getElementById(pTextareaID).value = text + pText;
+}
+
+}
+
+function pauseSample(evt) {
+  var audio = evt.currentTarget;
+  _paq.push(['trackEvent', 'Preview Samples', 'Stop Preview Sample', audio.dataset.title]);
+}
+function playSample(evt) {
+  var audio = evt.currentTarget;
+  _paq.push(['trackEvent', 'Preview Samples', 'Play Preview Sample', audio.dataset.title]);
+}
+</script>
+<table border="0" width="500">
+<tbody><tr class="list_head">
+<td>2raumwohnung</td><td>Wir trafen uns in einem Garten</td></tr>
+<tr class="list_tr1"><td>Cover</td><td><center><img src="data/cover/3.jpg" height="80px" width="80px"></center></td></tr>
+<tr class="list_tr2"><td>Language</td><td>German</td></tr>
+<tr class="list_tr1"><td>Year</td><td>2000</td></tr>
+<tr class="list_tr2"><td>Genre</td><td>Pop</td></tr>
+<tr class="list_tr1"><td>Edition</td><td>SingStar Deutsch Rock-Pop</td></tr>
+<tr class="list_tr2"><td>BPM</td><td>310</td></tr>
+<tr class="list_tr1"><td>GAP</td><td>1140</td></tr>
+<tr class="list_tr2"><td>Golden Notes</td><td>Yes <img src="images/yes_small.png"></td></tr>
+<tr class="list_tr1"><td>Songcheck</td><td>No <img src="images/no_small.png"></td></tr>
+<tr class="list_tr2"><td>Date</td><td>11.11.25 - 18:54</td></tr>
+<tr class="list_tr1"><td>Uploaded by</td><td><a href="?link=profil&amp;id=1">SsX</a><img src="images/star2.png"> <img src="images/star2.png"> <img src="images/star2.png"> <img src="images/star2.png"> <img src="images/star2.png"> </td></tr>
+<tr class="list_tr1"><td>Song edited by:</td><td><a href="?link=profil&amp;id=19169">DeathStarecht</a>  </td></tr><tr class="list_tr2"><td>Views</td><td>1178</td></tr>
+<tr class="list_tr1"><td>Rating</td><td><img src="images/star.png"> <img src="images/star.png"> <img src="images/star.png"> <img src="images/star.png"> <img src="images/star.png"> (<a href="?link=comments&amp;songrates=3"><b>1</b></a>) <form action="?link=detail&amp;id=3&amp;comment=1" method="post"><select name="stars">
+      <option>1</option>
+      <option>2</option>
+	<option>3</option>
+      <option>4</option>
+	<option>5</option>
+</select> <input type="hidden" name="text" value="onlyvoting"><input type="submit" value="rate"></form></td></tr>
+<tr class="list_tr2"><td>Audio Sample</td><td>Audio Sample von apple.com<br><audio controls="" data-title="2raumwohnung - Wir trafen uns in einem Garten" onplaying="playSample(event)" onpause="pauseSample(event)"><source src="https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview126/v4/1b/37/f7/1b37f7f9-7d24-3ad0-b67e-a8c7b1131eec/mzaf_338807589117382303.plus.aac.ep.m4a" type="audio/mpeg"></audio></td></tr>
+<tr class="list_tr1"><td colspan="2" align="center"><br><a href="?link=gettxt&amp;id=3"><b>Download TXT</b></a>
+	<br><br><a href="view.php?id=3&amp;database1=deluxe_songs">Show Notes</a>
+	<br><br><b><a href="javascript:artist('2raumwohnung')" class="editbutton">More Songs from 2raumwohnung</a></b>
+	<br><br><img src="images/mini-zip.png"> <a class="editbutton" href="#" onclick="addToList('3', '1')"><b>add Song to ZipArchiv</b></a> <img src="images/new.png">
+	</td></tr>
+
+</tbody></table>
+<br>
+<table border="0" width="500">
+<tbody><tr class="list_head"><td>Comments by users (two cents)</td></tr>
+<tr class="list_tr1"><td></td></tr>
+<tr class="list_tr2"><td>08.11.09 - 10:13 | <a href="?link=profil&amp;id=19772">lego_las</a> <img src="images/add.png"></td></tr><tr class="list_tr1"><td><br><center><br><iframe class="embed" width="432" height="240" src="https://www.youtube.com/embed/2wkekZpikbY"></iframe></center><br><br><br></td></tr><tr class="list_tr1"><td>
+</td></tr><tr class="list_tr2"><td>Write Comment</td></tr>
+<tr class="list_tr1" align="center"><td>
+<form action="?link=detail&amp;id=3&amp;comment=1" method="post">
+<textarea rows="6" cols="30" name="text" id="txtinput" onclick="clean()">Your Comment...</textarea><br>
+Rating:
+<select name="stars">
+      <option>neutral</option>
+      <option>positiv</option>
+	<option>negativ</option>
+</select><input type="submit" value="Add two cents"><br><br>
+</form>
+	<input type="image" src="images/smilies/happy.png" onclick="setTextarea('txtinput',':)')">
+
+	<input type="image" src="images/smilies/laughing.png" onclick="setTextarea('txtinput',':D')">
+	<input type="image" src="images/smilies/surprised.png" onclick="setTextarea('txtinput',':O')">
+	<input type="image" src="images/smilies/winking.png" onclick="setTextarea('txtinput',';)')">
+	<input type="image" src="images/smilies/flat.png" onclick="setTextarea('txtinput',':|')">
+	<input type="image" src="images/smilies/sad.png" onclick="setTextarea('txtinput',':(')">
+	<input type="image" src="images/smilies/tongue_out.png" onclick="setTextarea('txtinput',':P')">
+<br>
+
+<!-- Hello <input type="image" src="images/youtube.png" 		onclick="setTextarea('txtinput','[youtube]url[/youtube]')"> -->
+
+<input type="image" src="images/link.png" onclick="u=prompt('Enter URL:','http://example.org');
+l=prompt('Enter optional label:','Example');
+if (l == '') { setTextarea('txtinput','[url]'+u+'[/url]'); }
+else { setTextarea('txtinput','[url]'+u+' '+l+'[/url]') }">
+
+<input type="image" src="images/youtube.png" onclick="f=prompt('Enter Youtube-Link:','https://www.youtube.com/watch?v=');
+setTextarea('txtinput','[youtube]'+f+'[/youtube]')">
+
+<input type="image" src="images/dailymotion.png" onclick="f=prompt('Enter dailymotion-Link:','http://www.dailymotion.com/video/');
+setTextarea('txtinput','[dailymotion]'+f+'[/dailymotion]')">
+
+<input type="image" src="images/vimeo.png" onclick="f=prompt('Enter Vimeo-Link:','https://vimeo.com/');
+setTextarea('txtinput','[vimeo]'+f+'[/vimeo]')">
+
+</td></tr>
+
+</tbody></table>
+<br>
+
+	<table border="0" width="500">
+		<tbody><tr class="list_head">
+		<td>Administrative</td></tr>
+			<tr class="list_tr1"><td></td></tr><tr class="list_tr2">
+		<td><a href="?link=editsongs&amp;id=3"><font color="#990000">Edit</font></a></td></tr>
+</tbody></table> </td></tr>
+<tr>
+	<td class="cat" colspan="2" align="center"><input class="btnmain" type="hidden" name="submit" value="Submit">&nbsp;&nbsp;
+	  <input class="btnlite" type="hidden" value="Reset" name="reset"></td>
+</tr>
+</tbody></table>
+</td>
+	</tr>
+		</tbody></table>
+	
+
+<script type="text/javascript">
+function artist(name)
+{
+document.getElementById('artistform_name').value = name;
+document.getElementById('artistform').submit();
+}
+function title(name)
+{
+document.getElementById('titleform_name').value = name;
+document.getElementById('titleform').submit();
+}
+</script>
+<form id="artistform" action="?link=list" method="post">
+<input id="artistform_name" type="hidden" name="interpret">
+<input type="hidden" name="details" value="1">
+</form>
+<form id="titleform" action="?link=list" method="post">
+<input id="titleform_name" type="hidden" name="title">
+<input type="hidden" name="details" value="1">
+</form>
+
+<style type="text/css">
+<!--
+.style_pm {color: #990000}
+.style4 {font-size: 12px}
+-->
+</style>
+
+
+<script>
+  var _paq = window._paq = window._paq || [];
+  _paq.push(['setUserId', 'anon_boy']);
+  _paq.push(['trackPageView']);
+  _paq.push(['enableLinkTracking']);
+  _paq.push(['setRequestMethod', 'GET']);
+  (function() {
+    _paq.push(['setTrackerUrl', '/stats/']);
+    _paq.push(['setSiteId', 'yEplKJvn3znLGB5']);
+    var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+    g.async=true; g.src='/stats/'; s.parentNode.insertBefore(g,s);
+  })();
+</script>
+</body></html>

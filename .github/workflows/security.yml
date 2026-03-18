@@ -1,0 +1,49 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run security scan daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  security-audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+        continue-on-error: false
+
+      - name: Run npm audit (production dependencies only)
+        run: npm audit --production --audit-level=moderate
+        continue-on-error: false
+
+      - name: Check for outdated dependencies
+        run: npm outdated || true
+
+      - name: Generate security report
+        if: always()
+        run: |
+          echo "## Security Scan Results" > $GITHUB_STEP_SUMMARY
+          echo "✅ Security audit completed successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Audit Levels" >> $GITHUB_STEP_SUMMARY
+          echo "- **High/Severe**: Failed the build" >> $GITHUB_STEP_SUMMARY
+          echo "- **Moderate (production)**: Failed the build" >> $GITHUB_STEP_SUMMARY

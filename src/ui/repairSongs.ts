@@ -20,11 +20,20 @@ export type RepairProgress = {
   videoProgress?: number; // 0..1
 };
 
+export type RepairErrorType =
+  | "not_found"
+  | "network_error"
+  | "no_video"
+  | "auth_error"
+  | "rate_limit"
+  | "unknown";
+
 export type RepairResult = {
   total: number;
   fixed: number;
   rebuilt: number; // songs added to tracking (already had video.mp4)
   failed: string[];
+  errors: Map<number, { type: RepairErrorType; message: string }>;
 };
 
 /** Stable negative hash so songs without a USDB apiId get a unique tracking id. */
@@ -89,6 +98,11 @@ const repairSingleSong = (
       const first = results[0];
       if (!first) return false;
       videoLink = first.url || `https://youtu.be/${first.id}`;
+    }
+
+    // Validate videoLink before normalization
+    if (!videoLink) {
+      return yield* Effect.fail(new Error("No video link found"));
     }
 
     // Normalize link (same logic as downloadSong.ts)
@@ -216,39 +230,108 @@ export const scanAndRepairVideos = (
 
     // ── Repair missing videos in parallel (concurrency = 3) ──
     const total = needsRepair.length;
+
+    // Atomic counter to avoid race conditions with parallel repairs
+    let completedCount = 0;
+    const updateProgress = (songName: string, videoProgress?: number) => {
+      // Use completedCount instead of array index to ensure accurate progress
+      onProgress?.({
+        current: completedCount + 1,
+        total,
+        currentSong: songName,
+        videoProgress,
+      });
+    };
+
+    // Helper function to categorize errors
+    const categorizeError = (error: Error): { type: RepairErrorType; message: string } => {
+      const message = error.message.toLowerCase();
+
+      // Check for specific error patterns
+      if (message.includes("network") || message.includes("etimedout") || message.includes("enotfound")) {
+        return { type: "network_error", message: error.message };
+      }
+      if (message.includes("401") || message.includes("unauthorized") || message.includes("forbidden")) {
+        return { type: "auth_error", message: error.message };
+      }
+      if (message.includes("429") || message.includes("rate limit") || message.includes("too many requests")) {
+        return { type: "rate_limit", message: error.message };
+      }
+      if (message.includes("no video") || message.includes("video not available") || message.includes("not found")) {
+        return { type: "no_video", message: error.message };
+      }
+      if (message.includes("not found")) {
+        return { type: "not_found", message: error.message };
+      }
+
+      return { type: "unknown", message: error.message };
+    };
+
     const repairEffects = needsRepair.map((name, idx) =>
       Effect.gen(function* () {
         const songDir = join(downloadDir, name);
-        const current = idx + 1;
-        onProgress?.({ current, total, currentSong: name });
+        // Update progress when starting
+        updateProgress(name);
+
         const apiId = entryByDirName.get(name)?.apiId ?? null;
-        return yield* Effect.catchAll(
+
+        // Attempt repair with error categorization
+        const result = yield* Effect.catchAll(
           repairSingleSong(
             songDir,
             name,
             cookie,
             apiId,
             cookiesBrowser,
-            (videoProgress) =>
+            (videoProgress) => {
+              // Update with video progress
               onProgress?.({
-                current,
+                current: completedCount + 1,
                 total,
                 currentSong: name,
                 videoProgress,
-              }),
+              });
+            },
           ),
-          () => Effect.succeed(false),
+          (error) => {
+            // Categorize the error for better user feedback
+            const categorized = categorizeError(
+              error instanceof Error ? error : new Error(String(error))
+            );
+            return Effect.succeed<{ success: boolean; error?: { type: RepairErrorType; message: string } }>({
+              success: false,
+              error: categorized,
+            });
+          },
         );
+
+        const success = typeof result === "boolean" ? result : result.success;
+
+        // Increment completed count only when actually finished
+        if (success) {
+          completedCount++;
+        }
+
+        return { success, idx, error: typeof result === "object" && "error" in result ? result.error : undefined };
       }),
     );
 
     const results = yield* Effect.all(repairEffects, { concurrency: 3 });
     let fixed = 0;
     const failed: string[] = [];
-    for (const [i, success] of results.entries()) {
-      if (success) fixed++;
-      else failed.push(needsRepair[i] ?? "");
+    const errors = new Map<number, { type: RepairErrorType; message: string }>();
+
+    for (const result of results) {
+      if (result.success) {
+        fixed++;
+      } else {
+        const songName = needsRepair[result.idx] ?? "";
+        failed.push(songName);
+        if (result.error) {
+          errors.set(result.idx, result.error);
+        }
+      }
     }
 
-    return { total, fixed, rebuilt, failed };
+    return { total, fixed, rebuilt, failed, errors };
   });

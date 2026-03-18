@@ -33,6 +33,18 @@ import {
 
 type Mode = "setup" | "form" | "results" | "repair";
 
+type DownloadStatus = "downloading" | "completed" | "failed";
+
+// Constants for download concurrency and UI
+const DOWNLOAD_CONCURRENCY = 3; // Number of parallel downloads
+const VISIBLE_OPTION_COUNT = 20; // Number of search results shown
+const DISPLAY_TIMEOUT_MS = {
+  ERROR: 500,     // How long to show errors before clearing
+  WARNING: 3000,  // How long to show warnings before clearing
+  WARNINGS: 5000, // How long to show optional warnings before clearing
+  SUCCESS: 100,   // How long to show completed downloads before removing
+};
+
 export const App: FC = () => {
   const { exit } = useApp();
 
@@ -63,7 +75,7 @@ export const App: FC = () => {
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeDownloads, setActiveDownloads] = useState<
-    Array<{ apiId: number; artist: string; title: string; progress: number }>
+    Array<{ apiId: number; artist: string; title: string; progress: number; status?: DownloadStatus }>
   >([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [downloadedEntries, setDownloadedEntries] = useState<DownloadedEntry[]>(
@@ -96,9 +108,10 @@ export const App: FC = () => {
         const session = await Effect.runPromise(ensureSession);
         if (!isMounted) return;
         setCookie(session.cookie);
-        const cfg = await Effect.runPromise(loadConfig).catch(
-          () => null as AppConfig | null,
-        );
+        const cfg = await Effect.runPromise(loadConfig).catch((error) => {
+          console.error("Failed to load config:", error);
+          return null as AppConfig | null;
+        });
         if (cfg?.downloadDir) setDownloadDir(cfg.downloadDir);
         if (cfg?.browser) setBrowser(cfg.browser);
         setMode(cfg?.downloadDir ? "form" : "setup");
@@ -206,7 +219,10 @@ export const App: FC = () => {
       setBrowser(trimmedBrowser);
       await Effect.runPromise(
         saveConfig({ downloadDir: trimmed, browser: trimmedBrowser }),
-      ).catch(() => {});
+      ).catch((error) => {
+        console.error("Failed to save config:", error);
+        setErrorMessage("Failed to save configuration. Please try again.");
+      });
       setMode("form");
     },
     [],
@@ -238,6 +254,9 @@ export const App: FC = () => {
       ]);
 
       try {
+        // Collect warnings during download
+        const downloadWarnings: string[] = [];
+
         const result = await Effect.runPromise(
           downloadSong({
             song,
@@ -250,6 +269,10 @@ export const App: FC = () => {
                   d.apiId === song.apiId ? { ...d, progress: p } : d,
                 ),
               ),
+            onWarning: (warnings) => {
+              // Collect warnings from download
+              downloadWarnings.push(...warnings);
+            },
           }),
         );
         try {
@@ -264,14 +287,57 @@ export const App: FC = () => {
             }),
           );
           setDownloadedEntries(updated);
-        } catch {}
+
+          // Show warnings if there were any optional failures (e.g., cover)
+          if (downloadWarnings.length > 0) {
+            const warningMessage = `⚠️ ${downloadWarnings.length} warning(s):\n${downloadWarnings.join("\n")}`;
+            setErrorMessage(warningMessage);
+            // Clear warning message after timeout
+            setTimeout(() => {
+              setErrorMessage(null);
+            }, DISPLAY_TIMEOUT_MS.WARNINGS);
+          }
+        } catch (trackingError) {
+          // Log tracking error for debugging, but don't fail the download
+          const trackingMessage = trackingError instanceof Error ? trackingError.message : String(trackingError);
+          console.error(`Failed to track download for "${song.title}":`, trackingError);
+          // Still show success to user, but log the tracking error
+          setErrorMessage(`Download completed, but tracking failed: ${trackingMessage}`);
+          setTimeout(() => {
+            setErrorMessage(null);
+          }, DISPLAY_TIMEOUT_MS.WARNING);
+        }
+
+        // Mark as completed and remove after brief delay
+        setActiveDownloads((prev) =>
+          prev.map((d) =>
+            d.apiId === song.apiId ? { ...d, progress: 1, status: "completed" as const } : d,
+          ),
+        );
+        setTimeout(() => {
+          setActiveDownloads((prev) =>
+            prev.filter((d) => d.apiId !== song.apiId),
+          );
+        }, DISPLAY_TIMEOUT_MS.SUCCESS);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        setErrorMessage(message);
-      } finally {
+        console.error('Download error:', err);
+        setErrorMessage(`Failed to download "${song.title}": ${message}`);
+        // Mark as failed before removing
         setActiveDownloads((prev) =>
-          prev.filter((d) => d.apiId !== song.apiId),
+          prev.map((d) =>
+            d.apiId === song.apiId ? { ...d, status: "failed" as const } : d,
+          ).filter((d) =>
+            // Keep failed downloads visible briefly, then remove
+            d.apiId !== song.apiId || d.status === "downloading",
+          ),
         );
+        // Wait before removing failed download so user can see the error
+        setTimeout(() => {
+          setActiveDownloads((prev) =>
+            prev.filter((d) => d.apiId !== song.apiId),
+          );
+        }, DISPLAY_TIMEOUT_MS.ERROR);
       }
     },
     [cookie, ytAvailable, ffmpegAvailable, downloadDir, browser],
@@ -279,8 +345,15 @@ export const App: FC = () => {
 
   const downloadSelectedSong = useCallback(
     async (index?: number) => {
-      const song = songs[index ?? selectedIndex];
-      if (!song) return;
+      const idx = index ?? selectedIndex;
+      const song = songs[idx];
+      if (!song) {
+        const errorMsg = `Invalid song index: ${idx} (array length: ${songs.length})`;
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        setTimeout(() => setErrorMessage(null), 3000);
+        return;
+      }
       await downloadSongItem(song);
     },
     [songs, selectedIndex, downloadSongItem],
@@ -289,18 +362,12 @@ export const App: FC = () => {
   const downloadAllCurrentPage = useCallback(async () => {
     const toDownload = songs.filter((s) => !downloadedApiIds.has(s.apiId));
     if (toDownload.length === 0) return;
-    let i = 0;
-    const CONCURRENCY = 3;
-    const workers = Array.from(
-      { length: Math.min(CONCURRENCY, toDownload.length) },
-      async () => {
-        while (i < toDownload.length) {
-          const song = toDownload[i++];
-          if (song) await downloadSongItem(song);
-        }
-      },
-    );
-    await Promise.all(workers);
+
+    // Process in batches instead of using worker pools
+    for (let i = 0; i < toDownload.length; i += DOWNLOAD_CONCURRENCY) {
+      const batch = toDownload.slice(i, i + DOWNLOAD_CONCURRENCY);
+      await Promise.all(batch.map(song => downloadSongItem(song)));
+    }
   }, [songs, downloadedApiIds, downloadSongItem]);
 
   const downloadAllPages = useCallback(async () => {
@@ -342,18 +409,12 @@ export const App: FC = () => {
       const filteredSongs = allSongs.filter(
         (s) => !downloadedApiIds.has(s.apiId),
       );
-      let i = 0;
-      const CONCURRENCY = 3;
-      const workers = Array.from(
-        { length: Math.min(CONCURRENCY, filteredSongs.length) },
-        async () => {
-          while (i < filteredSongs.length) {
-            const song = filteredSongs[i++];
-            if (song) await downloadSongItem(song);
-          }
-        },
-      );
-      await Promise.all(workers);
+
+      // Process in batches instead of using worker pools
+      for (let i = 0; i < filteredSongs.length; i += DOWNLOAD_CONCURRENCY) {
+        const batch = filteredSongs.slice(i, i + DOWNLOAD_CONCURRENCY);
+        await Promise.all(batch.map(song => downloadSongItem(song)));
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
@@ -690,9 +751,14 @@ export const App: FC = () => {
                         }))}
                         onChange={(v: string) => {
                           const idx = Number(v);
-                          setSelectedIndex(idx);
+                          // Validate bounds before setting index
+                          if (!Number.isNaN(idx) && idx >= 0 && idx < songs.length) {
+                            setSelectedIndex(idx);
+                          } else {
+                            console.error(`Invalid song index: ${idx} (length: ${songs.length})`);
+                          }
                         }}
-                        visibleOptionCount={20}
+                        visibleOptionCount={VISIBLE_OPTION_COUNT}
                         value={String(selectedIndex)}
                       />
                     )}

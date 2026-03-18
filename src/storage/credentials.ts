@@ -34,17 +34,57 @@ const writeJsonFile = (
     catch: (e) => (e instanceof Error ? e : new Error("Failed to write file")),
   });
 
+/**
+ * Validates and sanitizes credentials with runtime checks.
+ * Ensures fields meet security requirements.
+ */
+const validateCredentials = (data: unknown): data is StoredCredentials => {
+  // Type guard: check if data is an object with required fields
+  if (typeof data !== "object" || data === null) {
+    return false;
+  }
+
+  const creds = data as Record<string, unknown>;
+
+  // Check if required fields exist and are strings
+  if (typeof creds.user !== "string" || typeof creds.pass !== "string") {
+    return false;
+  }
+
+  // Trim whitespace
+  const user = creds.user.trim();
+  const pass = creds.pass.trim();
+
+  // Validate lengths (prevent DoS with very long strings)
+  const MIN_LENGTH = 1;
+  const MAX_LENGTH = 255;
+
+  if (
+    user.length < MIN_LENGTH ||
+    user.length > MAX_LENGTH ||
+    pass.length < MIN_LENGTH ||
+    pass.length > MAX_LENGTH
+  ) {
+    return false;
+  }
+
+  // Update the object with trimmed values
+  creds.user = user;
+  creds.pass = pass;
+
+  return true;
+};
+
 export const loadCredentials: Effect.Effect<StoredCredentials | null, Error> =
   Effect.gen(function* () {
     const path = yield* resolveDataFilePath(FILE_NAME);
     const data = yield* readJsonFile(path);
-    if (
-      data &&
-      typeof data.user === "string" &&
-      typeof data.pass === "string"
-    ) {
-      return data as StoredCredentials;
+
+    // Use runtime validation instead of type assertion
+    if (validateCredentials(data)) {
+      return data; // Now type-safe due to validateCredentials type guard
     }
+
     return null;
   });
 

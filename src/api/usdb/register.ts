@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { randomBytes } from "node:crypto";
 import { API_URL } from "./config.ts";
 
 export type Registration = {
@@ -49,9 +50,12 @@ export const generateRandomUsername = (): string => {
 export const generateRandomPassword = (length = 14): string => {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@#$%^&*()_+-=";
+  // Use crypto.randomBytes for cryptographically secure random numbers
+  const randomBytesBuffer = randomBytes(length);
   let pass = "";
   for (let i = 0; i < length; i++) {
-    pass += chars.charAt(Math.floor(Math.random() * chars.length));
+    // Use modulo to map random byte to character index
+    pass += chars[randomBytesBuffer[i] % chars.length];
   }
   return pass;
 };
