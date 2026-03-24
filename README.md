@@ -49,8 +49,15 @@ The first run will check yt-dlp and initialize a session. Use the search form, p
 
 
 ## Keyboard Shortcuts
-- In search form: Tab = switch field, Enter = search, Esc = quit
-- In results: ↑/↓ = select, Enter = download, ←/→ = page, e = edit search, r = refresh, Esc = back
+- **In search form:** `Tab` = switch field, `Enter` = search, `Ctrl+s` = setup path/cookies, `Ctrl+v` = scan & repair videos, `Esc` = quit
+- **In results:** 
+  - `↑`/`↓` = select song, `Enter` = download immediately
+  - `←`/`→` = change page, `Ctrl+e` = edit search, `Ctrl+r` = refresh, `Esc` = back to search
+- **Bulk Downloading (Queue):**
+  - `Ctrl+q` = add selected song to queue
+  - `Ctrl+a` = add all songs on current page to queue
+  - `Ctrl+p` = fetch and add *all pages* of search results to queue
+  - `Ctrl+d` = start downloading the queue
 
 
 ## Links
