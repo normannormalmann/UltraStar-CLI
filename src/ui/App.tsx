@@ -13,12 +13,13 @@ import { ffmpegInstallHint, ytDlpInstallHint } from "../platform.ts";
 import { ensureSession } from "../session.ts";
 import { type AppConfig, loadConfig, saveConfig } from "../storage/config.ts";
 import {
-  appendDownloadedEntry,
   type DownloadedEntry,
+  appendDownloadedEntry,
   loadDownloadedEntries,
 } from "../storage/downloaded.ts";
 import { appendFailedDownload } from "../storage/failedDownloads.ts";
-import DownloadedList from "./components/DownloadedList.tsx";
+import { loadQueue, saveQueue } from "../storage/queue.ts";
+import { DownloadedList } from "./components/DownloadedList.tsx";
 import HelpRow from "./components/HelpRow.tsx";
 import LoadingRow from "./components/LoadingRow.tsx";
 import PathSetupForm from "./components/PathSetupForm.tsx";
@@ -98,8 +99,18 @@ export const App: FC = () => {
   );
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
 
-  const [downloadQueue, setDownloadQueue] = useState<Song[]>([]);
+  const [downloadQueue, setDownloadQueueState] = useState<Song[]>([]);
   const [isDownloadingQueue, setIsDownloadingQueue] = useState<boolean>(false);
+
+  // Wrapper for setDownloadQueue to also persist to disk
+  const setDownloadQueue = useCallback((action: Song[] | ((prev: Song[]) => Song[])) => {
+    setDownloadQueueState((prev) => {
+      const next = typeof action === "function" ? action(prev) : action;
+      // Persist to disk in background
+      Effect.runPromise(saveQueue(next)).catch(console.error);
+      return next;
+    });
+  }, []);
 
   const canPaginate = useMemo(() => totalPages > 1, [totalPages]);
   const downloadedApiIds = useMemo(
@@ -125,6 +136,12 @@ export const App: FC = () => {
         if (cfg?.downloadDir) setDownloadDir(cfg.downloadDir);
         if (cfg?.browser) setBrowser(cfg.browser);
         setMode(cfg?.downloadDir ? "form" : "setup");
+
+        // Load persisted queue
+        const savedQueue = await Effect.runPromise(loadQueue).catch(() => [] as Song[]);
+        if (isMounted && savedQueue.length > 0) {
+          setDownloadQueueState(savedQueue);
+        }
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         setErrorMessage(message);
