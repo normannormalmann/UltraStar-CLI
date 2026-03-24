@@ -432,7 +432,6 @@ export const App: FC = () => {
     try {
       let page = 1;
       let totalPagesFound = Math.max(totalPages, 1);
-      const allSongs: Song[] = [];
       while (page <= totalPagesFound) {
         setAllPagesFetchProgress({ current: page, total: totalPagesFound });
         const result = await Effect.runPromise(
@@ -450,10 +449,14 @@ export const App: FC = () => {
           totalPagesFound = result.totalPages;
         }
 
-        allSongs.push(...result.songs);
+        // Add to queue page by page instead of holding all 20,000 in memory
+        addToQueue(result.songs);
+        
+        // Wait a tiny bit to let the React render cycle catch up and garbage collect
+        await new Promise((r) => setTimeout(r, 10));
+
         page++;
       }
-      addToQueue(allSongs);
       setAllPagesFetchProgress(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
