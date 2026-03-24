@@ -30,10 +30,17 @@ export const HelpRow: FC<Props> = ({ mode, canDownload }) => {
       </Text>
       <Text>{" "}</Text>
       {canDownload ? (
-        <Text dimColor>
-          ↑/↓: select • Enter: download • Ctrl+a: all on page • Ctrl+p: all pages • ←/→:
-          page • Ctrl+e: edit search • Ctrl+r: refresh • Esc: back
-        </Text>
+        <Box flexDirection="column">
+          <Text dimColor>
+            ↑/↓: select • Enter: download • Ctrl+q: queue song • Ctrl+a: queue page
+          </Text>
+          <Text dimColor>
+            Ctrl+p: queue all • Ctrl+d: start queue • ←/→: page • Ctrl+e: edit search
+          </Text>
+          <Text dimColor>
+            Ctrl+r: refresh • Esc: back
+          </Text>
+        </Box>
       ) : (
         <Text dimColor>
           ↑/↓: select • ←/→: page • Ctrl+e: edit search • Ctrl+r: refresh • Esc: back

@@ -98,6 +98,9 @@ export const App: FC = () => {
   );
   const [repairResult, setRepairResult] = useState<RepairResult | null>(null);
 
+  const [downloadQueue, setDownloadQueue] = useState<Song[]>([]);
+  const [isDownloadingQueue, setIsDownloadingQueue] = useState<boolean>(false);
+
   const canPaginate = useMemo(() => totalPages > 1, [totalPages]);
   const downloadedApiIds = useMemo(
     () => new Set(downloadedEntries.map((e) => e.apiId)),
@@ -359,6 +362,23 @@ export const App: FC = () => {
     [cookie, ytAvailable, ffmpegAvailable, downloadDir, browser],
   );
 
+  const addToQueue = useCallback(
+    (songsToAdd: Song[]) => {
+      setDownloadQueue((prev) => {
+        // Keep a set of IDs currently in queue to quickly filter out duplicates
+        const existingIds = new Set(prev.map((s) => s.apiId));
+        const newSongs = songsToAdd.filter(
+          (s) => !existingIds.has(s.apiId) && !downloadedApiIds.has(s.apiId),
+        );
+        if (newSongs.length > 0) {
+           return [...prev, ...newSongs];
+        }
+        return prev;
+      });
+    },
+    [downloadedApiIds],
+  );
+
   const downloadSelectedSong = useCallback(
     async (index?: number) => {
       const idx = index ?? selectedIndex;
@@ -370,39 +390,49 @@ export const App: FC = () => {
         setTimeout(() => setErrorMessage(null), DISPLAY_TIMEOUT_MS.ERROR);
         return;
       }
+      if (downloadedApiIds.has(song.apiId)) {
+        setErrorMessage(`Song "${song.title}" is already downloaded.`);
+        setTimeout(() => setErrorMessage(null), DISPLAY_TIMEOUT_MS.ERROR);
+        return;
+      }
       await downloadSongItem(song);
     },
-    [songs, selectedIndex, downloadSongItem],
+    [songs, selectedIndex, downloadedApiIds, downloadSongItem],
   );
 
-  const downloadAllCurrentPage = useCallback(async () => {
-    const toDownload = songs.filter((s) => !downloadedApiIds.has(s.apiId));
-    if (toDownload.length === 0) return;
+  const queueSelectedSong = useCallback(
+    (index?: number) => {
+      const idx = index ?? selectedIndex;
+      const song = songs[idx];
+      if (!song) {
+        const errorMsg = `Invalid song index: ${idx} (array length: ${songs.length})`;
+        console.error(errorMsg);
+        setErrorMessage(errorMsg);
+        setTimeout(() => setErrorMessage(null), DISPLAY_TIMEOUT_MS.ERROR);
+        return;
+      }
+      if (downloadedApiIds.has(song.apiId)) {
+        setErrorMessage(`Song "${song.title}" is already downloaded.`);
+        setTimeout(() => setErrorMessage(null), DISPLAY_TIMEOUT_MS.ERROR);
+        return;
+      }
+      addToQueue([song]);
+    },
+    [songs, selectedIndex, downloadedApiIds, addToQueue],
+  );
 
-    // Process in batches instead of using worker pools
-    for (let i = 0; i < toDownload.length; i += DOWNLOAD_CONCURRENCY) {
-      const batch = toDownload.slice(i, i + DOWNLOAD_CONCURRENCY);
-      await Promise.all(batch.map((song) => downloadSongItem(song)));
-    }
-  }, [songs, downloadedApiIds, downloadSongItem]);
+  const queueAllCurrentPage = useCallback(() => {
+    addToQueue(songs);
+  }, [songs, addToQueue]);
 
-  const downloadAllPages = useCallback(async () => {
+  const queueAllPages = useCallback(async () => {
     if (!cookie || isFetchingAllPages) return;
-    if (ytAvailable === false) {
-      setErrorMessage("yt-dlp is not installed. Downloading is disabled.");
-      return;
-    }
-    if (ffmpegAvailable === false) {
-      setErrorMessage("ffmpeg is not installed. Downloading is disabled.");
-      return;
-    }
     setIsFetchingAllPages(true);
     setErrorMessage(null);
     try {
-      // Process page-by-page to avoid accumulating all songs in memory
-      // (974 pages = ~19,500 songs would crash Bun with OOM)
       let page = 1;
       let totalPagesFound = Math.max(totalPages, 1);
+      const allSongs: Song[] = [];
       while (page <= totalPagesFound) {
         setAllPagesFetchProgress({ current: page, total: totalPagesFound });
         const result = await Effect.runPromise(
@@ -420,17 +450,10 @@ export const App: FC = () => {
           totalPagesFound = result.totalPages;
         }
 
-        // Download this page's songs immediately, then discard
-        const pageSongs = result.songs.filter(
-          (s) => !downloadedApiIds.has(s.apiId),
-        );
-        for (let i = 0; i < pageSongs.length; i += DOWNLOAD_CONCURRENCY) {
-          const batch = pageSongs.slice(i, i + DOWNLOAD_CONCURRENCY);
-          await Promise.all(batch.map((song) => downloadSongItem(song)));
-        }
-
+        allSongs.push(...result.songs);
         page++;
       }
+      addToQueue(allSongs);
       setAllPagesFetchProgress(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -441,15 +464,51 @@ export const App: FC = () => {
     }
   }, [
     cookie,
-    ytAvailable,
     isFetchingAllPages,
     artist,
     title,
     limit,
     totalPages,
-    downloadedApiIds,
-    downloadSongItem,
+    addToQueue,
+  ]);
+
+  const processQueue = useCallback(async () => {
+    if (isDownloadingQueue || downloadQueue.length === 0) return;
+    if (ytAvailable === false) {
+      setErrorMessage("yt-dlp is not installed. Downloading is disabled.");
+      return;
+    }
+    if (ffmpegAvailable === false) {
+      setErrorMessage("ffmpeg is not installed. Downloading is disabled.");
+      return;
+    }
+
+    setIsDownloadingQueue(true);
+    try {
+      // Filter the queue one last time right before starting, 
+      // just in case downloadedApiIds updated while we were waiting
+      let currentQueue = downloadQueue.filter(
+        (song) => !downloadedApiIds.has(song.apiId)
+      );
+
+      while (currentQueue.length > 0) {
+        const batch = currentQueue.slice(0, DOWNLOAD_CONCURRENCY);
+        await Promise.all(batch.map((song) => downloadSongItem(song)));
+        setDownloadQueue((prev) => prev.filter(s => !batch.some(b => b.apiId === s.apiId)));
+        currentQueue = currentQueue.slice(batch.length).filter(
+          (song) => !downloadedApiIds.has(song.apiId)
+        );
+      }
+    } finally {
+      setIsDownloadingQueue(false);
+    }
+  }, [
+    downloadQueue,
+    isDownloadingQueue,
+    ytAvailable,
     ffmpegAvailable,
+    downloadSongItem,
+    downloadedApiIds,
   ]);
 
   const startRepair = useCallback(async () => {
@@ -540,11 +599,19 @@ export const App: FC = () => {
         return;
       }
       if (key.ctrl && input === "a" && !isFetchingAllPages) {
-        void downloadAllCurrentPage();
+        queueAllCurrentPage();
         return;
       }
       if (key.ctrl && input === "p" && !isFetchingAllPages) {
-        void downloadAllPages();
+        void queueAllPages();
+        return;
+      }
+      if (key.ctrl && input === "q") {
+        queueSelectedSong();
+        return;
+      }
+      if (key.ctrl && input === "d" && !isDownloadingQueue) {
+        void processQueue();
         return;
       }
       // Up/Down handled by Select component
@@ -838,6 +905,18 @@ export const App: FC = () => {
               </Text>{" "}
               <Text color="red">{errorMessage}</Text>
             </Text>
+          )}
+
+          {downloadQueue.length > 0 && (
+            <Box flexDirection="row" gap={1}>
+              <Text color="cyan" bold>
+                Queue:
+              </Text>
+              <Text>
+                {downloadQueue.length} song{downloadQueue.length !== 1 ? "s" : ""} waiting
+                {isDownloadingQueue ? " (Processing...)" : " (Press Ctrl+d to start)"}
+              </Text>
+            </Box>
           )}
 
           <HelpRow
