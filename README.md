@@ -33,18 +33,13 @@ UltraStar CLI is the fastest and most powerful tool to build, manage, and scale 
 
 ---
 
-## ⚡ Quick Start (No Install Required)
+## ⚡ Quick Start (Run directly from GitHub)
 
-You can run the CLI directly without cloning the repository. The first run will automatically check your environment (yt-dlp, ffmpeg) and initialize a secure session.
+You can run this exact version of the CLI directly from GitHub using Bun. The first run will automatically check your environment (yt-dlp, ffmpeg) and initialize a secure session.
 
 ### Bun (Recommended)
 ```bash
-bunx --bun ultrastar
-```
-
-### npm
-```bash
-npx ultrastar
+bunx --bun github:normannormalmann/UltraStar-CLI
 ```
 
 *By default, your songs will be saved under `./songs/Artist - Title/` relative to where you run the command. You can change this path within the app's Setup menu.*
