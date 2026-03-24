@@ -522,28 +522,28 @@ export const App: FC = () => {
         onSubmitSearch();
         return;
       }
-      if (input === "v") {
+      if (key.ctrl && input === "v") {
         void startRepair();
         return;
       }
-      if (input === "s") {
+      if (key.ctrl && input === "s") {
         setMode("setup");
         return;
       }
     } else if (mode === "results") {
-      if (input === "e") {
+      if (key.ctrl && input === "e") {
         setMode("form");
         return;
       }
-      if (input === "r") {
+      if (key.ctrl && input === "r") {
         void fetchPage(currentPage);
         return;
       }
-      if (input === "a" && !isFetchingAllPages) {
+      if (key.ctrl && input === "a" && !isFetchingAllPages) {
         void downloadAllCurrentPage();
         return;
       }
-      if (input === "A" && !isFetchingAllPages) {
+      if (key.ctrl && input === "p" && !isFetchingAllPages) {
         void downloadAllPages();
         return;
       }

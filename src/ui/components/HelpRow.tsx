@@ -1,12 +1,14 @@
-import { Text } from "ink";
+import { Box, Text } from "ink";
 import type { FC } from "react";
 
 export type Mode = "form" | "results";
 
-export const HelpRow: FC<{ mode: Mode; canDownload?: boolean }> = ({
-  mode,
-  canDownload = true,
-}) => {
+export type Props = {
+  mode: Mode;
+  canDownload?: boolean;
+};
+
+export const HelpRow: FC<Props> = ({ mode, canDownload }) => {
   if (mode === "form") {
     return (
       <Text>
@@ -15,27 +17,29 @@ export const HelpRow: FC<{ mode: Mode; canDownload?: boolean }> = ({
         </Text>{" "}
         <Text dimColor>
           Tab: switch field • Enter: search
-          {canDownload ? " • v: repair videos" : ""} • s: setup • Esc: quit
+          {canDownload ? " • Ctrl+v: repair videos" : ""} • Ctrl+s: setup • Esc:
+          quit
         </Text>
       </Text>
     );
   }
   return (
-    <Text>
+    <Box>
       <Text color="white" bold>
         Tips:
-      </Text>{" "}
+      </Text>
+      <Text>{" "}</Text>
       {canDownload ? (
         <Text dimColor>
-          ↑/↓: select • Enter: download • a: all on page • A: all pages • ←/→:
-          page • e: edit • r: refresh • Esc: back
+          ↑/↓: select • Enter: download • Ctrl+a: all on page • Ctrl+p: all pages • ←/→:
+          page • Ctrl+e: edit search • Ctrl+r: refresh • Esc: back
         </Text>
       ) : (
         <Text dimColor>
-          ↑/↓: select • ←/→: page • e: edit search • r: refresh • Esc: back
+          ↑/↓: select • ←/→: page • Ctrl+e: edit search • Ctrl+r: refresh • Esc: back
         </Text>
       )}
-    </Text>
+    </Box>
   );
 };
 
