@@ -61,6 +61,9 @@ export const DownloadedList: FC<DownloadedListProps> = ({
           </Text>
         </Text>
       ))}
+      {entries.length > 15 && (
+        <Text dimColor>... and {entries.length - 15} more</Text>
+      )}
     </Box>
   );
 };

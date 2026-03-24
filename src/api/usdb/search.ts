@@ -27,6 +27,9 @@ const decodeHtmlEntities = (str: string): string =>
     .replace(/&gt;/g, ">")
     .replace(/&quot;/g, '"')
     .replace(/&#39;|&apos;/g, "'")
+    .replace(/&#x([0-9a-fA-F]+);/g, (_, hex) =>
+      String.fromCharCode(Number.parseInt(hex, 16)),
+    )
     .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
 
 /**
@@ -44,12 +47,17 @@ export const parseSongFromTable = (html: string | undefined): Song | null => {
     ...html.matchAll(/<td\s+.*?>(?:<a.*?>)?(.*)<\/td>/gm),
   ].map((m) => m?.[1]);
 
-  const artist = songMetadata?.[0] ? decodeHtmlEntities(songMetadata[0]) : undefined;
-  const title = songMetadata?.[1] ? decodeHtmlEntities(songMetadata[1]) : undefined;
-  // Type guard: ensure songMetadata[6] exists and is a string before calling toLowerCase()
-  const languages = typeof songMetadata?.[6] === "string"
-    ? songMetadata[6].toLowerCase().split(", ")
+  const artist = songMetadata?.[0]
+    ? decodeHtmlEntities(songMetadata[0])
     : undefined;
+  const title = songMetadata?.[1]
+    ? decodeHtmlEntities(songMetadata[1])
+    : undefined;
+  // Type guard: ensure songMetadata[6] exists and is a string before calling toLowerCase()
+  const languages =
+    typeof songMetadata?.[6] === "string"
+      ? songMetadata[6].toLowerCase().split(", ")
+      : undefined;
 
   if (!songId || !artist || !title || !languages) return null;
 
@@ -74,9 +82,14 @@ export const parseSongsFromSearch = (html: string): Page => {
   const songsHtml = [
     ...html.matchAll(/<tr class="list_tr[12].*?>\s*([\s\S]*?)\s*<\/tr>/gm),
   ];
-  const songs = songsHtml
-    .map((s) => parseSongFromTable(s?.[1]))
-    .filter((s): s is Song => Boolean(s));
+  const parsed = songsHtml.map((s) => parseSongFromTable(s?.[1]));
+  const failedCount = parsed.filter((s) => s === null).length;
+  if (failedCount > 0) {
+    console.warn(
+      `[usdb/search] ${failedCount}/${parsed.length} song(s) failed to parse from search results`,
+    );
+  }
+  const songs = parsed.filter((s): s is Song => Boolean(s));
 
   return {
     totalPages,

@@ -1,4 +1,4 @@
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import chalk from "chalk";
@@ -106,7 +106,7 @@ const packageJsonBuild = {
   },
 };
 
-await mkdir("../build", { recursive: true });
+// ../build/ already exists (created by Bun.build above)
 await writeFile(
   "../build/package.json",
   JSON.stringify(packageJsonBuild, null, 2),

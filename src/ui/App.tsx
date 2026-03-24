@@ -17,6 +17,7 @@ import {
   type DownloadedEntry,
   loadDownloadedEntries,
 } from "../storage/downloaded.ts";
+import { appendFailedDownload } from "../storage/failedDownloads.ts";
 import DownloadedList from "./components/DownloadedList.tsx";
 import HelpRow from "./components/HelpRow.tsx";
 import LoadingRow from "./components/LoadingRow.tsx";
@@ -39,10 +40,10 @@ type DownloadStatus = "downloading" | "completed" | "failed";
 const DOWNLOAD_CONCURRENCY = 3; // Number of parallel downloads
 const VISIBLE_OPTION_COUNT = 20; // Number of search results shown
 const DISPLAY_TIMEOUT_MS = {
-  ERROR: 500,     // How long to show errors before clearing
-  WARNING: 3000,  // How long to show warnings before clearing
+  ERROR: 5000, // How long to show errors before clearing
+  WARNING: 5000, // How long to show warnings before clearing
   WARNINGS: 5000, // How long to show optional warnings before clearing
-  SUCCESS: 100,   // How long to show completed downloads before removing
+  SUCCESS: 100, // How long to show completed downloads before removing
 };
 
 export const App: FC = () => {
@@ -75,7 +76,13 @@ export const App: FC = () => {
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [activeDownloads, setActiveDownloads] = useState<
-    Array<{ apiId: number; artist: string; title: string; progress: number; status?: DownloadStatus }>
+    Array<{
+      apiId: number;
+      artist: string;
+      title: string;
+      progress: number;
+      status?: DownloadStatus;
+    }>
   >([]);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [downloadedEntries, setDownloadedEntries] = useState<DownloadedEntry[]>(
@@ -299,10 +306,18 @@ export const App: FC = () => {
           }
         } catch (trackingError) {
           // Log tracking error for debugging, but don't fail the download
-          const trackingMessage = trackingError instanceof Error ? trackingError.message : String(trackingError);
-          console.error(`Failed to track download for "${song.title}":`, trackingError);
+          const trackingMessage =
+            trackingError instanceof Error
+              ? trackingError.message
+              : String(trackingError);
+          console.error(
+            `Failed to track download for "${song.title}":`,
+            trackingError,
+          );
           // Still show success to user, but log the tracking error
-          setErrorMessage(`Download completed, but tracking failed: ${trackingMessage}`);
+          setErrorMessage(
+            `Download completed, but tracking failed: ${trackingMessage}`,
+          );
           setTimeout(() => {
             setErrorMessage(null);
           }, DISPLAY_TIMEOUT_MS.WARNING);
@@ -311,7 +326,9 @@ export const App: FC = () => {
         // Mark as completed and remove after brief delay
         setActiveDownloads((prev) =>
           prev.map((d) =>
-            d.apiId === song.apiId ? { ...d, progress: 1, status: "completed" as const } : d,
+            d.apiId === song.apiId
+              ? { ...d, progress: 1, status: "completed" as const }
+              : d,
           ),
         );
         setTimeout(() => {
@@ -321,18 +338,17 @@ export const App: FC = () => {
         }, DISPLAY_TIMEOUT_MS.SUCCESS);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
-        console.error('Download error:', err);
+        console.error("Download error:", err);
         setErrorMessage(`Failed to download "${song.title}": ${message}`);
-        // Mark as failed before removing
+        // Log to failed-downloads files
+        appendFailedDownload(downloadDir, song, message).catch(() => {});
+        // Mark as failed - keep visible until timeout removes it
         setActiveDownloads((prev) =>
           prev.map((d) =>
             d.apiId === song.apiId ? { ...d, status: "failed" as const } : d,
-          ).filter((d) =>
-            // Keep failed downloads visible briefly, then remove
-            d.apiId !== song.apiId || d.status === "downloading",
           ),
         );
-        // Wait before removing failed download so user can see the error
+        // Remove failed download after error timeout so user can see it
         setTimeout(() => {
           setActiveDownloads((prev) =>
             prev.filter((d) => d.apiId !== song.apiId),
@@ -351,7 +367,7 @@ export const App: FC = () => {
         const errorMsg = `Invalid song index: ${idx} (array length: ${songs.length})`;
         console.error(errorMsg);
         setErrorMessage(errorMsg);
-        setTimeout(() => setErrorMessage(null), 3000);
+        setTimeout(() => setErrorMessage(null), DISPLAY_TIMEOUT_MS.ERROR);
         return;
       }
       await downloadSongItem(song);
@@ -366,7 +382,7 @@ export const App: FC = () => {
     // Process in batches instead of using worker pools
     for (let i = 0; i < toDownload.length; i += DOWNLOAD_CONCURRENCY) {
       const batch = toDownload.slice(i, i + DOWNLOAD_CONCURRENCY);
-      await Promise.all(batch.map(song => downloadSongItem(song)));
+      await Promise.all(batch.map((song) => downloadSongItem(song)));
     }
   }, [songs, downloadedApiIds, downloadSongItem]);
 
@@ -383,7 +399,8 @@ export const App: FC = () => {
     setIsFetchingAllPages(true);
     setErrorMessage(null);
     try {
-      const allSongs: Song[] = [];
+      // Process page-by-page to avoid accumulating all songs in memory
+      // (974 pages = ~19,500 songs would crash Bun with OOM)
       let page = 1;
       let totalPagesFound = Math.max(totalPages, 1);
       while (page <= totalPagesFound) {
@@ -402,19 +419,19 @@ export const App: FC = () => {
         if (result.totalPages > totalPagesFound) {
           totalPagesFound = result.totalPages;
         }
-        allSongs.push(...result.songs);
+
+        // Download this page's songs immediately, then discard
+        const pageSongs = result.songs.filter(
+          (s) => !downloadedApiIds.has(s.apiId),
+        );
+        for (let i = 0; i < pageSongs.length; i += DOWNLOAD_CONCURRENCY) {
+          const batch = pageSongs.slice(i, i + DOWNLOAD_CONCURRENCY);
+          await Promise.all(batch.map((song) => downloadSongItem(song)));
+        }
+
         page++;
       }
       setAllPagesFetchProgress(null);
-      const filteredSongs = allSongs.filter(
-        (s) => !downloadedApiIds.has(s.apiId),
-      );
-
-      // Process in batches instead of using worker pools
-      for (let i = 0; i < filteredSongs.length; i += DOWNLOAD_CONCURRENCY) {
-        const batch = filteredSongs.slice(i, i + DOWNLOAD_CONCURRENCY);
-        await Promise.all(batch.map(song => downloadSongItem(song)));
-      }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
@@ -507,6 +524,10 @@ export const App: FC = () => {
       }
       if (input === "v") {
         void startRepair();
+        return;
+      }
+      if (input === "s") {
+        setMode("setup");
         return;
       }
     } else if (mode === "results") {
@@ -752,10 +773,16 @@ export const App: FC = () => {
                         onChange={(v: string) => {
                           const idx = Number(v);
                           // Validate bounds before setting index
-                          if (!Number.isNaN(idx) && idx >= 0 && idx < songs.length) {
+                          if (
+                            !Number.isNaN(idx) &&
+                            idx >= 0 &&
+                            idx < songs.length
+                          ) {
                             setSelectedIndex(idx);
                           } else {
-                            console.error(`Invalid song index: ${idx} (length: ${songs.length})`);
+                            console.error(
+                              `Invalid song index: ${idx} (length: ${songs.length})`,
+                            );
                           }
                         }}
                         visibleOptionCount={VISIBLE_OPTION_COUNT}

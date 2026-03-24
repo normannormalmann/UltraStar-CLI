@@ -50,12 +50,17 @@ export const generateRandomUsername = (): string => {
 export const generateRandomPassword = (length = 14): string => {
   const chars =
     "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789!@#$%^&*()_+-=";
-  // Use crypto.randomBytes for cryptographically secure random numbers
-  const randomBytesBuffer = randomBytes(length);
+  // Use rejection sampling to avoid modulo bias
+  const maxValid = 256 - (256 % chars.length);
   let pass = "";
-  for (let i = 0; i < length; i++) {
-    // Use modulo to map random byte to character index
-    pass += chars[randomBytesBuffer[i] % chars.length];
+  while (pass.length < length) {
+    const randomBytesBuffer = randomBytes(length - pass.length + 4);
+    for (let i = 0; i < randomBytesBuffer.length && pass.length < length; i++) {
+      // Reject values that would introduce modulo bias
+      if (randomBytesBuffer[i]! < maxValid) {
+        pass += chars[randomBytesBuffer[i]! % chars.length];
+      }
+    }
   }
   return pass;
 };

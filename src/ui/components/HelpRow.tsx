@@ -15,7 +15,7 @@ export const HelpRow: FC<{ mode: Mode; canDownload?: boolean }> = ({
         </Text>{" "}
         <Text dimColor>
           Tab: switch field • Enter: search
-          {canDownload ? " • v: repair videos" : ""} • Esc: quit
+          {canDownload ? " • v: repair videos" : ""} • s: setup • Esc: quit
         </Text>
       </Text>
     );

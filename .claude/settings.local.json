@@ -4,7 +4,18 @@
       "Bash(npx tsc:*)",
       "Bash(bun:*)",
       "Bash(npm install:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(rm:*)",
+      "Bash(cd:*)",
+      "Bash(yt-dlp:*)",
+      "Bash(npx biome:*)",
+      "Bash(npx @biomejs/biome check src/api/youtube/download.ts src/ui/components/PathSetupForm.tsx src/ui/App.tsx)",
+      "Bash(npx @biomejs/biome check --write src/api/youtube/download.ts src/ui/components/PathSetupForm.tsx src/ui/App.tsx)",
+      "Bash(npx @biomejs/biome check --write src/api/youtube/download.ts)",
+      "Bash(npx @biomejs/biome check --write src/api/youtube/download.ts src/ui/App.tsx)",
+      "Bash(dir /s /b C:UsersnormaAppData)",
+      "Bash(grep -i ultrastar.*config)",
+      "Read(//c/Users/norma/AppData/**)"
     ],
     "deny": [],
     "ask": []

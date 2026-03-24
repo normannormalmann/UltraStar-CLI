@@ -33,7 +33,7 @@ export type RepairResult = {
   fixed: number;
   rebuilt: number; // songs added to tracking (already had video.mp4)
   failed: string[];
-  errors: Map<number, { type: RepairErrorType; message: string }>;
+  errors: Map<string, { type: RepairErrorType; message: string }>;
 };
 
 /** Stable negative hash so songs without a USDB apiId get a unique tracking id. */
@@ -244,20 +244,38 @@ export const scanAndRepairVideos = (
     };
 
     // Helper function to categorize errors
-    const categorizeError = (error: Error): { type: RepairErrorType; message: string } => {
+    const categorizeError = (
+      error: Error,
+    ): { type: RepairErrorType; message: string } => {
       const message = error.message.toLowerCase();
 
       // Check for specific error patterns
-      if (message.includes("network") || message.includes("etimedout") || message.includes("enotfound")) {
+      if (
+        message.includes("network") ||
+        message.includes("etimedout") ||
+        message.includes("enotfound")
+      ) {
         return { type: "network_error", message: error.message };
       }
-      if (message.includes("401") || message.includes("unauthorized") || message.includes("forbidden")) {
+      if (
+        message.includes("401") ||
+        message.includes("unauthorized") ||
+        message.includes("forbidden")
+      ) {
         return { type: "auth_error", message: error.message };
       }
-      if (message.includes("429") || message.includes("rate limit") || message.includes("too many requests")) {
+      if (
+        message.includes("429") ||
+        message.includes("rate limit") ||
+        message.includes("too many requests")
+      ) {
         return { type: "rate_limit", message: error.message };
       }
-      if (message.includes("no video") || message.includes("video not available") || message.includes("not found")) {
+      if (
+        message.includes("no video") ||
+        message.includes("video not available") ||
+        message.includes("not found")
+      ) {
         return { type: "no_video", message: error.message };
       }
       if (message.includes("not found")) {
@@ -296,9 +314,12 @@ export const scanAndRepairVideos = (
           (error) => {
             // Categorize the error for better user feedback
             const categorized = categorizeError(
-              error instanceof Error ? error : new Error(String(error))
+              error instanceof Error ? error : new Error(String(error)),
             );
-            return Effect.succeed<{ success: boolean; error?: { type: RepairErrorType; message: string } }>({
+            return Effect.succeed<{
+              success: boolean;
+              error?: { type: RepairErrorType; message: string };
+            }>({
               success: false,
               error: categorized,
             });
@@ -312,23 +333,33 @@ export const scanAndRepairVideos = (
           completedCount++;
         }
 
-        return { success, idx, error: typeof result === "object" && "error" in result ? result.error : undefined };
+        return {
+          success,
+          idx,
+          error:
+            typeof result === "object" && "error" in result
+              ? result.error
+              : undefined,
+        };
       }),
     );
 
     const results = yield* Effect.all(repairEffects, { concurrency: 3 });
     let fixed = 0;
     const failed: string[] = [];
-    const errors = new Map<number, { type: RepairErrorType; message: string }>();
+    const errors = new Map<
+      string,
+      { type: RepairErrorType; message: string }
+    >();
 
     for (const result of results) {
+      const songName = needsRepair[result.idx] ?? `unknown-${result.idx}`;
       if (result.success) {
         fixed++;
       } else {
-        const songName = needsRepair[result.idx] ?? "";
         failed.push(songName);
         if (result.error) {
-          errors.set(result.idx, result.error);
+          errors.set(songName, result.error);
         }
       }
     }

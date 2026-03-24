@@ -36,3 +36,10 @@ report.[0-9]_.[0-9]_.[0-9]_.[0-9]_.json
 
 
 songs
+
+# Generated/saved files
+Webseite.txt
+cookies.txt
+
+# Claude Code
+.claude/

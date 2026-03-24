@@ -1,6 +1,8 @@
 import { spawn } from "node:child_process";
 import { Effect } from "effect";
 
+const SEARCH_TIMEOUT_MS = 60_000; // 1 minute timeout for search
+
 export type YoutubeThumbnail = {
   url: string;
   id?: string;
@@ -43,8 +45,17 @@ export const searchYoutubeVideos = (
         const child = spawn("yt-dlp", args, {
           stdio: ["ignore", "pipe", "pipe"],
         });
+
+        const timeout = setTimeout(() => {
+          child.kill("SIGKILL");
+          reject(
+            new Error(`yt-dlp search timed out after ${SEARCH_TIMEOUT_MS}ms`),
+          );
+        }, SEARCH_TIMEOUT_MS);
+
         let stdout = "";
         let stderr = "";
+        const MAX_STDERR_LENGTH = 8192;
 
         child.stdout.setEncoding("utf8");
         child.stdout.on("data", (chunk) => {
@@ -52,10 +63,16 @@ export const searchYoutubeVideos = (
         });
         child.stderr.setEncoding("utf8");
         child.stderr.on("data", (chunk) => {
-          stderr += chunk as string;
+          if (stderr.length < MAX_STDERR_LENGTH) {
+            stderr += chunk as string;
+          }
         });
-        child.on("error", (err) => reject(err));
+        child.on("error", (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
         child.on("close", (code) => {
+          clearTimeout(timeout);
           if (code === 0) resolve(stdout);
           else
             reject(
@@ -72,7 +89,9 @@ export const searchYoutubeVideos = (
 
       // Validate array length to prevent memory exhaustion attacks
       if (lines.length > MAX_RESULTS) {
-        throw new Error(`Too many search results: ${lines.length} (max: ${MAX_RESULTS})`);
+        throw new Error(
+          `Too many search results: ${lines.length} (max: ${MAX_RESULTS})`,
+        );
       }
 
       const json = `[${lines.join(",")}]`;
@@ -80,7 +99,11 @@ export const searchYoutubeVideos = (
       // Parse with reviver to prevent prototype pollution
       const parsed = JSON.parse(json, (key, value) => {
         // Block dangerous keys that could modify prototype
-        if (key === "__proto__" || key === "constructor" || key === "prototype") {
+        if (
+          key === "__proto__" ||
+          key === "constructor" ||
+          key === "prototype"
+        ) {
           return undefined;
         }
         return value;

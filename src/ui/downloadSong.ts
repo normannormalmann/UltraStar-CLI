@@ -40,6 +40,7 @@ const UMLAUT_MAP: Record<string, string> = {
  */
 const sanitizeForPath = (name: string): string => {
   // Remove NUL-bytes and control characters (0x00-0x1f and 0x80-0x9f)
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional - stripping control chars for path safety
   let cleaned = name.replace(/[\x00-\x1f\x80-\x9f]/g, "");
 
   // Limit length to prevent buffer overflow attacks (Windows MAX_PATH is 260, but we're conservative)
@@ -132,7 +133,8 @@ export const downloadSong = (
 
     const updateOverallProgress = () => {
       // Weighted progress calculation
-      const overall = coverProgress * 0.05 + lyricsProgress * 0.15 + videoProgress * 0.8;
+      const overall =
+        coverProgress * 0.05 + lyricsProgress * 0.15 + videoProgress * 0.8;
       onProgress?.(overall);
     };
 
@@ -168,7 +170,9 @@ export const downloadSong = (
       // Lyrics are CRITICAL for Karaoke - fail if not available
       if (!parsed) {
         return yield* Effect.fail(
-          new Error(`Lyrics not found for "${song.title}" by ${song.artist}. Lyrics are REQUIRED for UltraStar.`),
+          new Error(
+            `Lyrics not found for "${song.title}" by ${song.artist}. Lyrics are REQUIRED for UltraStar.`,
+          ),
         );
       }
 
@@ -189,12 +193,10 @@ export const downloadSong = (
           lyricsProgress = 1;
           updateOverallProgress();
         },
-        catch: (e) => {
-          // Lyrics write failure is CRITICAL - fail the download
-          return yield* Effect.fail(
-            new Error(`Failed to write lyrics for "${song.title}": ${e instanceof Error ? e.message : String(e)}`),
-          );
-        },
+        catch: (e) =>
+          new Error(
+            `Failed to write lyrics for "${song.title}": ${e instanceof Error ? e.message : String(e)}`,
+          ),
       });
     });
 
