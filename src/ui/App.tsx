@@ -544,6 +544,48 @@ export const App: FC = () => {
     downloadedApiIds,
     setDownloadQueue,
   ]);
+
+  const queueEntireDatabase = useCallback(async () => {
+    if (!cookie || isFetchingAllPages) return;
+    setIsFetchingAllPages(true);
+    setErrorMessage(null);
+    try {
+      let page = 1;
+      let totalPagesFound = 1; // dynamically updated
+      while (page <= totalPagesFound) {
+        setAllPagesFetchProgress({
+          current: page,
+          total: Math.max(totalPagesFound, 1),
+        });
+        const result = await Effect.runPromise(
+          searchSongs(
+            {
+              limit,
+              start: (page - 1) * limit,
+            },
+            cookie,
+          ),
+        );
+        if (result.totalPages > totalPagesFound) {
+          totalPagesFound = result.totalPages;
+        }
+
+        addToQueue(result.songs);
+        await new Promise((r) => setTimeout(r, 10)); // Memory safety yield
+        page++;
+      }
+      setAllPagesFetchProgress(null);
+      // We do not auto-start processQueue here because it can be safely triggered manually
+      // or we can just let the user press Ctrl+D. Let's just queue them.
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    } finally {
+      setIsFetchingAllPages(false);
+      setAllPagesFetchProgress(null);
+    }
+  }, [cookie, isFetchingAllPages, limit, addToQueue]);
+
   const startRepair = useCallback(async () => {
     if (ytAvailable === false) {
       setErrorMessage("yt-dlp is not installed. Downloading is disabled.");
@@ -620,6 +662,22 @@ export const App: FC = () => {
       }
       if (key.ctrl && (input === "s" || input === "\x13")) {
         setMode("setup");
+        return;
+      }
+      if (
+        key.ctrl &&
+        (input === "a" || input === "\x01") &&
+        !isFetchingAllPages
+      ) {
+        void queueEntireDatabase();
+        return;
+      }
+      if (
+        key.ctrl &&
+        (input === "d" || input === "\x04") &&
+        !isDownloadingQueue
+      ) {
+        void processQueue();
         return;
       }
     } else if (mode === "results") {
