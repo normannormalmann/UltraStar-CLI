@@ -13,8 +13,8 @@ import { ffmpegInstallHint, ytDlpInstallHint } from "../platform.ts";
 import { ensureSession } from "../session.ts";
 import { type AppConfig, loadConfig, saveConfig } from "../storage/config.ts";
 import {
-  type DownloadedEntry,
   appendDownloadedEntry,
+  type DownloadedEntry,
   loadDownloadedEntries,
 } from "../storage/downloaded.ts";
 import { appendFailedDownload } from "../storage/failedDownloads.ts";
@@ -103,14 +103,17 @@ export const App: FC = () => {
   const [isDownloadingQueue, setIsDownloadingQueue] = useState<boolean>(false);
 
   // Wrapper for setDownloadQueue to also persist to disk
-  const setDownloadQueue = useCallback((action: Song[] | ((prev: Song[]) => Song[])) => {
-    setDownloadQueueState((prev) => {
-      const next = typeof action === "function" ? action(prev) : action;
-      // Persist to disk in background
-      Effect.runPromise(saveQueue(next)).catch(console.error);
-      return next;
-    });
-  }, []);
+  const setDownloadQueue = useCallback(
+    (action: Song[] | ((prev: Song[]) => Song[])) => {
+      setDownloadQueueState((prev) => {
+        const next = typeof action === "function" ? action(prev) : action;
+        // Persist to disk in background
+        Effect.runPromise(saveQueue(next)).catch(console.error);
+        return next;
+      });
+    },
+    [],
+  );
 
   const canPaginate = useMemo(() => totalPages > 1, [totalPages]);
   const downloadedApiIds = useMemo(
@@ -138,7 +141,9 @@ export const App: FC = () => {
         setMode(cfg?.downloadDir ? "form" : "setup");
 
         // Load persisted queue
-        const savedQueue = await Effect.runPromise(loadQueue).catch(() => [] as Song[]);
+        const savedQueue = await Effect.runPromise(loadQueue).catch(
+          () => [] as Song[],
+        );
         if (isMounted && savedQueue.length > 0) {
           setDownloadQueueState(savedQueue);
         }
@@ -388,7 +393,7 @@ export const App: FC = () => {
           (s) => !existingIds.has(s.apiId) && !downloadedApiIds.has(s.apiId),
         );
         if (newSongs.length > 0) {
-           return [...prev, ...newSongs];
+          return [...prev, ...newSongs];
         }
         return prev;
       });
@@ -468,7 +473,7 @@ export const App: FC = () => {
 
         // Add to queue page by page instead of holding all 20,000 in memory
         addToQueue(result.songs);
-        
+
         // Wait a tiny bit to let the React render cycle catch up and garbage collect
         await new Promise((r) => setTimeout(r, 10));
 
@@ -505,19 +510,21 @@ export const App: FC = () => {
 
     setIsDownloadingQueue(true);
     try {
-      // Filter the queue one last time right before starting, 
+      // Filter the queue one last time right before starting,
       // just in case downloadedApiIds updated while we were waiting
       let currentQueue = downloadQueue.filter(
-        (song) => !downloadedApiIds.has(song.apiId)
+        (song) => !downloadedApiIds.has(song.apiId),
       );
 
       while (currentQueue.length > 0) {
         const batch = currentQueue.slice(0, DOWNLOAD_CONCURRENCY);
         await Promise.all(batch.map((song) => downloadSongItem(song)));
-        setDownloadQueue((prev) => prev.filter(s => !batch.some(b => b.apiId === s.apiId)));
-        currentQueue = currentQueue.slice(batch.length).filter(
-          (song) => !downloadedApiIds.has(song.apiId)
+        setDownloadQueue((prev) =>
+          prev.filter((s) => !batch.some((b) => b.apiId === s.apiId)),
         );
+        currentQueue = currentQueue
+          .slice(batch.length)
+          .filter((song) => !downloadedApiIds.has(song.apiId));
       }
     } finally {
       setIsDownloadingQueue(false);
@@ -601,36 +608,36 @@ export const App: FC = () => {
         onSubmitSearch();
         return;
       }
-      if (key.ctrl && input === "v") {
+      if (key.ctrl && (input === "v" || input === "\x16")) {
         void startRepair();
         return;
       }
-      if (key.ctrl && input === "s") {
+      if (key.ctrl && (input === "s" || input === "\x13")) {
         setMode("setup");
         return;
       }
     } else if (mode === "results") {
-      if (key.ctrl && input === "e") {
+      if (key.ctrl && (input === "e" || input === "\x05")) {
         setMode("form");
         return;
       }
-      if (key.ctrl && input === "r") {
+      if (key.ctrl && (input === "r" || input === "\x12")) {
         void fetchPage(currentPage);
         return;
       }
-      if (key.ctrl && input === "a" && !isFetchingAllPages) {
+      if (key.ctrl && (input === "a" || input === "\x01") && !isFetchingAllPages) {
         queueAllCurrentPage();
         return;
       }
-      if (key.ctrl && input === "p" && !isFetchingAllPages) {
+      if (key.ctrl && (input === "p" || input === "\x10") && !isFetchingAllPages) {
         void queueAllPages();
         return;
       }
-      if (key.ctrl && input === "q") {
+      if (key.ctrl && (input === "q" || input === "\x11")) {
         queueSelectedSong();
         return;
       }
-      if (key.ctrl && input === "d" && !isDownloadingQueue) {
+      if (key.ctrl && (input === "d" || input === "\x04") && !isDownloadingQueue) {
         void processQueue();
         return;
       }
@@ -933,8 +940,11 @@ export const App: FC = () => {
                 Queue:
               </Text>
               <Text>
-                {downloadQueue.length} song{downloadQueue.length !== 1 ? "s" : ""} waiting
-                {isDownloadingQueue ? " (Processing...)" : " (Press Ctrl+d to start)"}
+                {downloadQueue.length} song
+                {downloadQueue.length !== 1 ? "s" : ""} waiting
+                {isDownloadingQueue
+                  ? " (Processing...)"
+                  : " (Press Ctrl+d to start)"}
               </Text>
             </Box>
           )}
