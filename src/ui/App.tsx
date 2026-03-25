@@ -897,13 +897,22 @@ export const App: FC = () => {
       ) : (
         <>
           {mode === "form" && (
-            <SearchForm
-              artist={artist}
-              title={title}
-              focusedField={focusedField}
-              setArtist={setArtist}
-              setTitle={setTitle}
-            />
+            <Box flexDirection="column" gap={1}>
+              <SearchForm
+                artist={artist}
+                title={title}
+                focusedField={focusedField}
+                setArtist={setArtist}
+                setTitle={setTitle}
+              />
+              {isFetchingAllPages && (
+                <Text color="cyan">
+                  {allPagesFetchProgress
+                    ? `Fetching pages... (${allPagesFetchProgress.current}/${allPagesFetchProgress.total})`
+                    : "Preparing bulk download..."}
+                </Text>
+              )}
+            </Box>
           )}
 
           {mode === "results" && (
