@@ -103,12 +103,18 @@ export const App: FC = () => {
   const [isDownloadingQueue, setIsDownloadingQueue] = useState<boolean>(false);
 
   // Wrapper for setDownloadQueue to also persist to disk
+  const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const setDownloadQueue = useCallback(
     (action: Song[] | ((prev: Song[]) => Song[])) => {
       setDownloadQueueState((prev) => {
         const next = typeof action === "function" ? action(prev) : action;
-        // Persist to disk in background
-        Effect.runPromise(saveQueue(next)).catch(console.error);
+        // Debounce persist to disk in background to prevent memory leaks during bulk adds
+        if (saveTimeoutRef.current) {
+          clearTimeout(saveTimeoutRef.current);
+        }
+        saveTimeoutRef.current = setTimeout(() => {
+          Effect.runPromise(saveQueue(next)).catch(console.error);
+        }, 2000);
         return next;
       });
     },
@@ -398,7 +404,7 @@ export const App: FC = () => {
         return prev;
       });
     },
-    [downloadedApiIds],
+    [downloadedApiIds, setDownloadQueue],
   );
 
   const downloadSelectedSong = useCallback(
@@ -536,8 +542,8 @@ export const App: FC = () => {
     ffmpegAvailable,
     downloadSongItem,
     downloadedApiIds,
+    setDownloadQueue,
   ]);
-
   const startRepair = useCallback(async () => {
     if (ytAvailable === false) {
       setErrorMessage("yt-dlp is not installed. Downloading is disabled.");
@@ -625,11 +631,19 @@ export const App: FC = () => {
         void fetchPage(currentPage);
         return;
       }
-      if (key.ctrl && (input === "a" || input === "\x01") && !isFetchingAllPages) {
+      if (
+        key.ctrl &&
+        (input === "a" || input === "\x01") &&
+        !isFetchingAllPages
+      ) {
         queueAllCurrentPage();
         return;
       }
-      if (key.ctrl && (input === "p" || input === "\x10") && !isFetchingAllPages) {
+      if (
+        key.ctrl &&
+        (input === "p" || input === "\x10") &&
+        !isFetchingAllPages
+      ) {
         void queueAllPages();
         return;
       }
@@ -637,7 +651,11 @@ export const App: FC = () => {
         queueSelectedSong();
         return;
       }
-      if (key.ctrl && (input === "d" || input === "\x04") && !isDownloadingQueue) {
+      if (
+        key.ctrl &&
+        (input === "d" || input === "\x04") &&
+        !isDownloadingQueue
+      ) {
         void processQueue();
         return;
       }
