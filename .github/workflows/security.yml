@@ -10,6 +10,9 @@ on:
     - cron: '0 2 * * *'
   workflow_dispatch:
 
+env:
+  BUN_VERSION: "1.2.19"
+
 jobs:
   security-audit:
     runs-on: ubuntu-latest
@@ -18,14 +21,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Bun.js
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: '20'
-          cache: 'npm'
+          bun-version: ${{ env.BUN_VERSION }}
 
       - name: Install dependencies
-        run: npm ci
+        run: bun install
+
+      - name: Generate package-lock.json for audit
+        run: npm install --package-lock-only --ignore-scripts
 
       - name: Run npm audit
         run: npm audit --audit-level=high
