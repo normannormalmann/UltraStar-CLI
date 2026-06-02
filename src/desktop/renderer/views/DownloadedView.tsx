@@ -16,6 +16,9 @@ const importMessage = (r: ArchiveImportResult): string => {
     );
   }
   if (r.skipped > 0) parts.push(`${r.skipped} bereits vorhanden`);
+  if (r.refreshed > 0) {
+    parts.push(`${r.refreshed} Einträge um Metadaten ergänzt`);
+  }
   return parts.join(" · ");
 };
 
@@ -24,6 +27,10 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
 }) => {
   const importProgress = useIpcEvent("event:archiveImportProgress", null);
   const [filter, setFilter] = useState("");
+  const [langFilter, setLangFilter] = useState("");
+  const [genreFilter, setGenreFilter] = useState("");
+  const [yearFrom, setYearFrom] = useState("");
+  const [yearTo, setYearTo] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ArchiveImportResult | null>(
     null,
@@ -55,17 +62,47 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
     </button>
   );
 
+  const languageOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of entries) {
+      const key = e.language ?? "Unbekannt";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [entries]);
+
+  const genreOptions = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const e of entries) {
+      const key = e.genre ?? "Unbekannt";
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
+  }, [entries]);
+
   const filtered = useMemo(() => {
     const q = filter.trim().toLowerCase();
+    const from = yearFrom ? Number.parseInt(yearFrom, 10) : null;
+    const to = yearTo ? Number.parseInt(yearTo, 10) : null;
     const sorted = [...entries].sort((a, b) =>
       b.downloadedAt.localeCompare(a.downloadedAt),
     );
-    if (!q) return sorted;
-    return sorted.filter(
-      (e) =>
-        e.artist.toLowerCase().includes(q) || e.title.toLowerCase().includes(q),
-    );
-  }, [entries, filter]);
+    return sorted.filter((e) => {
+      if (
+        q &&
+        !e.artist.toLowerCase().includes(q) &&
+        !e.title.toLowerCase().includes(q)
+      )
+        return false;
+      if (langFilter && (e.language ?? "Unbekannt") !== langFilter)
+        return false;
+      if (genreFilter && (e.genre ?? "Unbekannt") !== genreFilter) return false;
+      if (from !== null && (e.year === undefined || e.year < from))
+        return false;
+      if (to !== null && (e.year === undefined || e.year > to)) return false;
+      return true;
+    });
+  }, [entries, filter, langFilter, genreFilter, yearFrom, yearTo]);
 
   return (
     <div>
@@ -78,8 +115,53 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
         />
+        <select
+          className="input"
+          value={langFilter}
+          onChange={(e) => setLangFilter(e.target.value)}
+        >
+          <option value="">Sprache: Alle</option>
+          {languageOptions.map(([lang, count]) => (
+            <option key={lang} value={lang}>
+              {lang} ({count.toLocaleString("de-DE")})
+            </option>
+          ))}
+        </select>
+        <select
+          className="input"
+          value={genreFilter}
+          onChange={(e) => setGenreFilter(e.target.value)}
+        >
+          <option value="">Genre: Alle</option>
+          {genreOptions.map(([g, count]) => (
+            <option key={g} value={g}>
+              {g} ({count.toLocaleString("de-DE")})
+            </option>
+          ))}
+        </select>
+        <input
+          className="input"
+          style={{ width: 90 }}
+          type="number"
+          placeholder="Jahr von"
+          value={yearFrom}
+          onChange={(e) => setYearFrom(e.target.value)}
+        />
+        <input
+          className="input"
+          style={{ width: 90 }}
+          type="number"
+          placeholder="bis"
+          value={yearTo}
+          onChange={(e) => setYearTo(e.target.value)}
+        />
         {importButton}
       </div>
+      {(langFilter || genreFilter || yearFrom || yearTo || filter) && (
+        <p className="muted">
+          {filtered.length.toLocaleString("de-DE")} Treffer
+        </p>
+      )}
       {importError && <div className="error-banner">{importError}</div>}
       {importResult && <p className="muted">{importMessage(importResult)}</p>}
       {importProgress && (
@@ -126,12 +208,7 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
               {filtered.slice(0, 500).map((e) => (
                 <tr key={e.dirName}>
                   <td>
-                    {/* Negative apiIds = rekonstruierte/importierte Einträge ohne USDB-Cover */}
-                    {e.apiId > 0 ? (
-                      <CoverThumb apiId={e.apiId} />
-                    ) : (
-                      <div className="cover-thumb" />
-                    )}
+                    <CoverThumb apiId={e.apiId} songDir={e.songDir} />
                   </td>
                   <td style={{ color: "var(--green)" }}>{e.artist}</td>
                   <td>{e.title}</td>

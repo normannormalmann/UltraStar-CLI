@@ -1,17 +1,30 @@
 import type { FC } from "react";
 import { useEffect, useState } from "react";
 
-export const CoverThumb: FC<{ apiId: number }> = ({ apiId }) => {
+/**
+ * Cover-Thumbnail: USDB-Cover für echte apiIds, lokales cover.jpg
+ * (über covers:getLocal) für importierte/rekonstruierte Einträge.
+ */
+export const CoverThumb: FC<{ apiId: number; songDir?: string }> = ({
+  apiId,
+  songDir,
+}) => {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let alive = true;
-    void window.ultrastar.coverGet(apiId).then((url) => {
+    const load =
+      apiId > 0
+        ? window.ultrastar.coverGet(apiId)
+        : songDir
+          ? window.ultrastar.coverGetLocal(songDir)
+          : Promise.resolve(null);
+    void load.then((url) => {
       if (alive) setSrc(url);
     });
     return () => {
       alive = false;
     };
-  }, [apiId]);
+  }, [apiId, songDir]);
   return src ? (
     <img className="cover-thumb" src={src} alt="" />
   ) : (
