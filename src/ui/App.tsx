@@ -9,9 +9,19 @@ import {
   checkFfmpegAvailable,
   checkYtDlpAvailable,
 } from "../core/api/youtube/check.ts";
+import { downloadSong } from "../core/download/downloadSong.ts";
+import {
+  type RepairProgress,
+  type RepairResult,
+  scanAndRepairVideos,
+} from "../core/download/repairSongs.ts";
 import { ffmpegInstallHint, ytDlpInstallHint } from "../core/platform.ts";
 import { ensureSession } from "../core/session.ts";
-import { type AppConfig, loadConfig, saveConfig } from "../core/storage/config.ts";
+import {
+  type AppConfig,
+  loadConfig,
+  saveConfig,
+} from "../core/storage/config.ts";
 import {
   appendDownloadedEntry,
   type DownloadedEntry,
@@ -26,12 +36,6 @@ import PathSetupForm from "./components/PathSetupForm.tsx";
 import ProgressBar from "./components/ProgressBar.tsx";
 import SearchForm from "./components/SearchForm.tsx";
 import Select from "./components/Select.tsx";
-import { downloadSong } from "./downloadSong.ts";
-import {
-  type RepairProgress,
-  type RepairResult,
-  scanAndRepairVideos,
-} from "./repairSongs.ts";
 
 type Mode = "setup" | "form" | "results" | "repair";
 
