@@ -171,4 +171,5 @@ html, body, #root {
 .brand { display: flex; align-items: center; gap: 8px; }
 .btn svg { vertical-align: -2px; margin-right: 6px; }
 .btn.small svg { margin-right: 4px; }
+.btn svg:only-child { margin-right: 0; }
 .row-inline { display: inline-flex; align-items: center; gap: 4px; }

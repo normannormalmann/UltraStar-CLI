@@ -133,6 +133,8 @@ export const SearchView: FC<{
                           <button
                             className="btn small primary"
                             type="button"
+                            aria-label="Herunterladen"
+                            title="Herunterladen"
                             disabled={!canDownload}
                             onClick={() =>
                               void window.ultrastar.downloadSingle(s)
@@ -180,6 +182,8 @@ export const SearchView: FC<{
               <button
                 className="btn small"
                 type="button"
+                aria-label="Vorherige Seite"
+                title="Vorherige Seite"
                 disabled={page <= 1 || loading}
                 onClick={() => void fetchPage(page - 1)}
               >
@@ -191,6 +195,8 @@ export const SearchView: FC<{
               <button
                 className="btn small"
                 type="button"
+                aria-label="Nächste Seite"
+                title="Nächste Seite"
                 disabled={page >= totalPages || loading}
                 onClick={() => void fetchPage(page + 1)}
               >
