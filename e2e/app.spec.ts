@@ -6,9 +6,15 @@ test("app boots and shows the search view", async () => {
 
   await expect(window).toHaveTitle("UltraStar");
   // Sidebar-Einträge vorhanden
-  await expect(window.getByRole("button", { name: /Suche/ })).toBeVisible();
-  await expect(window.getByRole("button", { name: /Queue/ })).toBeVisible();
-  await expect(window.getByRole("button", { name: /Einstellungen/ })).toBeVisible();
+  await expect(
+    window.getByRole("button", { name: "Suche", exact: true }),
+  ).toBeVisible();
+  await expect(
+    window.getByRole("button", { name: /^Queue( \d+)?$/ }),
+  ).toBeVisible();
+  await expect(
+    window.getByRole("button", { name: "Einstellungen", exact: true }),
+  ).toBeVisible();
   // Such-View ist die Startansicht
   await expect(window.getByPlaceholder("Interpret…")).toBeVisible();
 
