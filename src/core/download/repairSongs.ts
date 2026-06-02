@@ -37,7 +37,7 @@ export type RepairResult = {
 };
 
 /** Stable negative hash so songs without a USDB apiId get a unique tracking id. */
-function stableHash(s: string): number {
+export function stableHash(s: string): number {
   let h = 0;
   for (const c of s) h = (Math.imul(31, h) + c.charCodeAt(0)) | 0;
   return h < 0 ? h : ~h; // always negative, never 0

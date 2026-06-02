@@ -1,0 +1,97 @@
+import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { afterAll, expect, test } from "bun:test";
+import { Effect } from "effect";
+import {
+  loadDownloadedEntries,
+  saveDownloadedEntries,
+} from "../storage/downloaded.ts";
+import { getCacheDir } from "../storage/paths.ts";
+import { importArchive } from "./importArchive.ts";
+
+// Isoliertes Datenverzeichnis (gleiche Technik wie queue.test.ts)
+process.env.ULTRASTAR_APP_NAME = `ultrastar-cli-import-test-${process.pid}`;
+
+const dirs: string[] = [];
+afterAll(async () => {
+  for (const d of dirs) await rm(d, { recursive: true, force: true });
+  const cache = await Effect.runPromise(getCacheDir());
+  await rm(join(cache, ".."), { recursive: true, force: true });
+});
+
+const makeArchive = async (): Promise<string> => {
+  const root = await mkdtemp(join(tmpdir(), "ultrastar-archive-"));
+  dirs.push(root);
+  return root;
+};
+
+const makeSong = async (
+  root: string,
+  dirName: string,
+  opts: { txt?: string | null; video?: boolean },
+): Promise<void> => {
+  const dir = join(root, dirName);
+  await mkdir(dir, { recursive: true });
+  if (opts.txt !== null) {
+    await writeFile(
+      join(dir, "song.txt"),
+      opts.txt ?? `#ARTIST:${dirName}-Artist\n#TITLE:${dirName}-Title\n`,
+      "utf8",
+    );
+  }
+  if (opts.video) {
+    await writeFile(join(dir, "video.mp4"), "fake-video-bytes", "utf8");
+  }
+};
+
+test("imports songs, counts missing videos, skips tracked, ignores non-song folders", async () => {
+  const root = await makeArchive();
+  await makeSong(root, "ABBA - Waterloo", { video: true });
+  await makeSong(root, "Toto - Africa", { video: false });
+  await makeSong(root, "Kein Song", { txt: null, video: false });
+  await makeSong(root, "Bereits Da", { video: true });
+
+  // "Bereits Da" vorab als getrackt markieren
+  await Effect.runPromise(
+    saveDownloadedEntries([
+      {
+        apiId: -1,
+        artist: "x",
+        title: "y",
+        dirName: "Bereits Da",
+        songDir: join(root, "Bereits Da"),
+        downloadedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]),
+  );
+
+  const result = await Effect.runPromise(importArchive(root));
+  expect(result).toEqual({ imported: 2, importedWithoutVideo: 1, skipped: 1 });
+
+  const entries = await Effect.runPromise(loadDownloadedEntries);
+  expect(entries).toHaveLength(3);
+  const abba = entries.find((e) => e.dirName === "ABBA - Waterloo");
+  expect(abba?.artist).toBe("ABBA - Waterloo-Artist");
+  expect(abba?.title).toBe("ABBA - Waterloo-Title");
+  expect(abba?.apiId).toBeLessThan(0);
+  expect(abba?.songDir).toBe(join(root, "ABBA - Waterloo"));
+});
+
+test("falls back to folder name when headers are missing", async () => {
+  const root = await makeArchive();
+  await makeSong(root, "Nur Noten", { txt: ": 0 4 0 La\n", video: true });
+
+  const result = await Effect.runPromise(importArchive(root));
+  expect(result.imported).toBe(1);
+  const entries = await Effect.runPromise(loadDownloadedEntries);
+  const e = entries.find((x) => x.dirName === "Nur Noten");
+  expect(e?.artist).toBe("Nur Noten");
+  expect(e?.title).toBe("Nur Noten");
+});
+
+test("fails with Error when the directory does not exist", async () => {
+  await expect(
+    Effect.runPromise(importArchive(join(tmpdir(), "does-not-exist-xyz"))),
+  ).rejects.toThrow();
+});
