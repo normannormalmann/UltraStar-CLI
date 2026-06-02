@@ -21,6 +21,8 @@ import type { Song } from "../shared/ipc-contract.ts";
 
 export const SEARCH_PAGE_SIZE = 20;
 
+let repairRunning = false;
+
 /**
  * Alle Invoke-Handler. Der Typ erzwingt, dass GENAU die Kanäle aus dem
  * Vertrag implementiert werden (fehlt einer, meckert tsc; ist einer zu viel,
@@ -103,6 +105,8 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
     },
 
     "repair:start": async () => {
+      if (repairRunning) return;
+      repairRunning = true;
       broadcast("event:repair", { running: true, progress: null, result: null });
       void Effect.runPromise(
         scanAndRepairVideos(state.downloadDir, state.cookie, state.browser, (p) =>
@@ -127,6 +131,9 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
             progress: null,
             result: null,
           });
+        })
+        .finally(() => {
+          repairRunning = false;
         });
     },
     "binaries:status": async () => binariesStatus(),
