@@ -46,6 +46,26 @@ bunx --bun github:normannormalmann/UltraStar-CLI
 
 ---
 
+## Desktop App (Windows)
+
+Die Desktop-App bietet dieselben Funktionen wie die CLI (Suche, Download,
+Queue, Reparatur) mit grafischer Oberfläche.
+
+**Download:** Neueste `UltraStar Setup *.exe` von den
+[GitHub Releases](https://github.com/normannormalmann/UltraStar-CLI/releases)
+herunterladen und ausführen. yt-dlp und ffmpeg lädt die App bei Bedarf
+selbst herunter (Einstellungen → Tools).
+
+**Entwicklung:**
+
+```bash
+bun install
+bun run desktop:dev    # Dev-Modus mit Hot Reload
+bun run desktop:dist   # Windows-Installer bauen (dist/)
+```
+
+---
+
 ## ⌨️ Keyboard Shortcuts & Controls
 
 To prevent accidental inputs while typing in the search bar, all core commands are mapped securely using the `Ctrl` modifier.
