@@ -134,6 +134,12 @@ export const appendFailedDownload = async (
   }
 };
 
+/** Alle protokollierten Fehl-Downloads aus der XLSX lesen (leeres Array, wenn keine existiert). */
+export const loadFailedDownloads = async (
+  downloadDir: string,
+): Promise<FailedDownload[]> =>
+  loadExistingEntries(join(downloadDir, XLSX_FILE));
+
 const loadExistingEntries = async (
   xlsxPath: string,
 ): Promise<FailedDownload[]> => {

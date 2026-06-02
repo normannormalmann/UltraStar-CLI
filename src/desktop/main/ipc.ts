@@ -7,6 +7,8 @@ import type {
   InvokeChannel,
   SearchRequest,
 } from "../shared/ipc-contract.ts";
+import { scanAndRepairVideos } from "../../core/download/repairSongs.ts";
+import { loadFailedDownloads } from "../../core/storage/failedDownloads.ts";
 import { binariesStatus, installMissingBinaries } from "./binaries.ts";
 import {
   downloadSongItem,
@@ -14,7 +16,7 @@ import {
   processQueue,
   requestQueueCancel,
 } from "./downloads.ts";
-import { state } from "./state.ts";
+import { broadcast, reloadDownloadedEntries, state } from "./state.ts";
 import type { Song } from "../shared/ipc-contract.ts";
 
 export const SEARCH_PAGE_SIZE = 20;
@@ -72,9 +74,7 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
       void downloadSongItem(song);
     },
 
-    "downloads:failedList": async () => {
-      throw new Error("not implemented until task 7");
-    },
+    "downloads:failedList": async () => loadFailedDownloads(state.downloadDir),
 
     "queue:add": async (songs: Song[]) => state.addToQueue(songs),
 
@@ -103,7 +103,31 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
     },
 
     "repair:start": async () => {
-      throw new Error("not implemented until task 7");
+      broadcast("event:repair", { running: true, progress: null, result: null });
+      void Effect.runPromise(
+        scanAndRepairVideos(state.downloadDir, state.cookie, state.browser, (p) =>
+          broadcast("event:repair", { running: true, progress: p, result: null }),
+        ),
+      )
+        .then(async (result) => {
+          await reloadDownloadedEntries();
+          broadcast("event:repair", {
+            running: false,
+            progress: null,
+            result: { ...result, errors: [...result.errors.entries()] },
+          });
+        })
+        .catch((err) => {
+          broadcast("event:error", {
+            context: "repair",
+            message: err instanceof Error ? err.message : String(err),
+          });
+          broadcast("event:repair", {
+            running: false,
+            progress: null,
+            result: null,
+          });
+        });
     },
     "binaries:status": async () => binariesStatus(),
     "binaries:install": async (force?: boolean) => {
