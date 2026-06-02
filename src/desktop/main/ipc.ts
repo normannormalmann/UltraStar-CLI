@@ -8,6 +8,7 @@ import type {
   SearchRequest,
 } from "../shared/ipc-contract.ts";
 import { scanAndRepairVideos } from "../../core/download/repairSongs.ts";
+import { importArchive } from "../../core/download/importArchive.ts";
 import { loadFailedDownloads } from "../../core/storage/failedDownloads.ts";
 import { binariesStatus, installMissingBinaries } from "./binaries.ts";
 import { getCoverDataUrl } from "./covers.ts";
@@ -23,6 +24,7 @@ import type { Song } from "../shared/ipc-contract.ts";
 export const SEARCH_PAGE_SIZE = 20;
 
 let repairRunning = false;
+let archiveImportRunning = false;
 
 /**
  * Alle Invoke-Handler. Der Typ erzwingt, dass GENAU die Kanäle aus dem
@@ -78,6 +80,27 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
     },
 
     "downloads:failedList": async () => loadFailedDownloads(state.downloadDir),
+
+    "archive:import": async () => {
+      if (archiveImportRunning) {
+        return { imported: 0, importedWithoutVideo: 0, skipped: 0 };
+      }
+      if (state.queueRunning || state.activeDownloads.length > 0 || repairRunning) {
+        throw new Error(
+          "Import nicht möglich, während Downloads oder eine Reparatur laufen. Bitte warten und erneut versuchen.",
+        );
+      }
+      archiveImportRunning = true;
+      try {
+        const result = await Effect.runPromise(
+          importArchive(state.downloadDir),
+        );
+        await reloadDownloadedEntries();
+        return result;
+      } finally {
+        archiveImportRunning = false;
+      }
+    },
 
     "queue:add": async (songs: Song[]) => state.addToQueue(songs),
 

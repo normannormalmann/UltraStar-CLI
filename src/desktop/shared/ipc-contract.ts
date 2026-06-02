@@ -3,11 +3,12 @@ import type {
   RepairErrorType,
   RepairProgress,
 } from "../../core/download/repairSongs.ts";
+import type { ImportResult as ArchiveImportResult } from "../../core/download/importArchive.ts";
 import type { AppConfig } from "../../core/storage/config.ts";
 import type { DownloadedEntry } from "../../core/storage/downloaded.ts";
 import type { FailedDownload } from "../../core/storage/failedDownloads.ts";
 
-export type { AppConfig, DownloadedEntry, FailedDownload, Page, Song };
+export type { ArchiveImportResult, AppConfig, DownloadedEntry, FailedDownload, Page, Song };
 
 export type SearchRequest = { artist: string; title: string; page: number };
 
@@ -68,6 +69,7 @@ export const INVOKE_CHANNELS = [
   "usdb:search",
   "download:single",
   "downloads:failedList",
+  "archive:import",
   "queue:add",
   "queue:remove",
   "queue:clear",
@@ -121,6 +123,7 @@ export type UltrastarApi = {
   search: (req: SearchRequest) => Promise<Page>;
   downloadSingle: (song: Song) => Promise<void>;
   failedList: () => Promise<FailedDownload[]>;
+  archiveImport: () => Promise<ArchiveImportResult>;
   queueAdd: (songs: Song[]) => Promise<number>;
   queueRemove: (apiId: number) => Promise<void>;
   queueClear: () => Promise<void>;

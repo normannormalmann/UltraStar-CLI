@@ -24,6 +24,7 @@ const api: UltrastarApi = {
   search: (req) => ipcRenderer.invoke("usdb:search", req),
   downloadSingle: (song) => ipcRenderer.invoke("download:single", song),
   failedList: () => ipcRenderer.invoke("downloads:failedList"),
+  archiveImport: () => ipcRenderer.invoke("archive:import"),
   queueAdd: (songs) => ipcRenderer.invoke("queue:add", songs),
   queueRemove: (apiId) => ipcRenderer.invoke("queue:remove", apiId),
   queueClear: () => ipcRenderer.invoke("queue:clear"),
