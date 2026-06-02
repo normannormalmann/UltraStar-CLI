@@ -10,6 +10,9 @@
 
 **Referenz-Spec:** `docs/superpowers/specs/2026-06-02-desktop-gui-design.md`
 
+**Icon-Konvention (Nutzer-Feedback nach Task 10):** KEINE Emojis in der UI — stattdessen `lucide-react`-Icons (Dependency seit dem Icon-Refit-Commit). Wo Code-Blöcke dieses Plans noch Emojis zeigen, gilt folgendes Mapping (Größe 16, `aria-hidden`):
+`🎤→Mic` · `🔍→Search` · `📋→ListMusic` · `✅/✓→Check` · `🔧→Wrench` · `⚙️→Settings` · `⬇→Download` · `＋→Plus` · `▶(Start)→Play` · `⏸→Pause` · `✕/✗→X` · `↻→RotateCcw bzw. RefreshCw (Update)` · `📂→FolderOpen` · `🗄→Database` · `◀/▶(Paging)→ChevronLeft/ChevronRight` · `▼/▶(Einklappen)→ChevronDown/ChevronRight`. Buttons mit Icon+Text nutzen `className="row"`-artiges Inline-Layout (Icon vor Label, `gap` via Button-Padding/CSS `.btn svg { vertical-align: -2px; margin-right: 6px; }`).
+
 **Umgebungs-Hinweise für alle Tasks (Windows, PowerShell):**
 - Bun-PATH-Prefix vor jedem Bun-Aufruf:
   `$env:Path = "$env:LOCALAPPDATA\Microsoft\WinGet\Packages\Oven-sh.Bun_Microsoft.Winget.Source_8wekyb3d8bbwe\bun-windows-x64;$env:Path"`
