@@ -1,4 +1,45 @@
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
+import {
+  EVENT_CHANNELS,
+  type EventChannel,
+  type EventPayloads,
+  type UltrastarApi,
+} from "../shared/ipc-contract.ts";
 
-// Wird in Task 9 durch die vollständige UltrastarApi ersetzt.
-contextBridge.exposeInMainWorld("ultrastar", { __stub: true });
+const on = <C extends EventChannel>(
+  channel: C,
+  listener: (payload: EventPayloads[C]) => void,
+): (() => void) => {
+  if (!(EVENT_CHANNELS as readonly string[]).includes(channel)) {
+    throw new Error(`Unknown event channel: ${channel}`);
+  }
+  const wrapped = (_event: Electron.IpcRendererEvent, payload: EventPayloads[C]) =>
+    listener(payload);
+  ipcRenderer.on(channel, wrapped);
+  return () => ipcRenderer.removeListener(channel, wrapped);
+};
+
+const api: UltrastarApi = {
+  getInitialState: () => ipcRenderer.invoke("app:getInitialState"),
+  search: (req) => ipcRenderer.invoke("usdb:search", req),
+  downloadSingle: (song) => ipcRenderer.invoke("download:single", song),
+  failedList: () => ipcRenderer.invoke("downloads:failedList"),
+  queueAdd: (songs) => ipcRenderer.invoke("queue:add", songs),
+  queueRemove: (apiId) => ipcRenderer.invoke("queue:remove", apiId),
+  queueClear: () => ipcRenderer.invoke("queue:clear"),
+  queueStart: () => ipcRenderer.invoke("queue:start"),
+  queueCancel: () => ipcRenderer.invoke("queue:cancel"),
+  queueFetchAllPages: (req) => ipcRenderer.invoke("queue:fetchAllPages", req),
+  queueEntireDatabase: () => ipcRenderer.invoke("queue:entireDatabase"),
+  repairStart: () => ipcRenderer.invoke("repair:start"),
+  settingsGet: () => ipcRenderer.invoke("settings:get"),
+  settingsSave: (config) => ipcRenderer.invoke("settings:save", config),
+  chooseDirectory: () => ipcRenderer.invoke("settings:chooseDirectory"),
+  binariesStatus: () => ipcRenderer.invoke("binaries:status"),
+  binariesInstall: (force) => ipcRenderer.invoke("binaries:install", force),
+  coverGet: (apiId) => ipcRenderer.invoke("covers:get", apiId),
+  openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
+  on,
+};
+
+contextBridge.exposeInMainWorld("ultrastar", api);
