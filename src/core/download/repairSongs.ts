@@ -43,7 +43,10 @@ function stableHash(s: string): number {
   return h < 0 ? h : ~h; // always negative, never 0
 }
 
-function parseTxtHeaders(content: string): { artist?: string; title?: string } {
+export function parseTxtHeaders(content: string): {
+  artist?: string;
+  title?: string;
+} {
   const result: { artist?: string; title?: string } = {};
   for (const line of content.split("\n")) {
     const match = /^#(\w+):(.*)$/.exec(line.trim());
