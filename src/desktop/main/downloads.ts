@@ -28,7 +28,7 @@ export const downloadSongItem = async (song: Song): Promise<void> => {
     return;
   }
   if (state.activeDownloads.some((d) => d.apiId === song.apiId)) return;
-  if (state.downloadedApiIds.has(song.apiId)) return;
+  if (state.isDownloadedSong(song)) return;
 
   state.setActiveDownloads([
     ...state.activeDownloads,
@@ -120,7 +120,7 @@ export const processQueue = async (): Promise<void> => {
   queueCancelRequested = false;
   try {
     let current = state.queue.filter(
-      (s) => !state.downloadedApiIds.has(s.apiId),
+      (s) => !state.isDownloadedSong(s),
     );
     while (current.length > 0 && !queueCancelRequested) {
       const batch = current.slice(0, DOWNLOAD_CONCURRENCY);
@@ -130,7 +130,7 @@ export const processQueue = async (): Promise<void> => {
       );
       current = current
         .slice(batch.length)
-        .filter((s) => !state.downloadedApiIds.has(s.apiId));
+        .filter((s) => !state.isDownloadedSong(s));
     }
   } finally {
     state.setQueueRunning(false);

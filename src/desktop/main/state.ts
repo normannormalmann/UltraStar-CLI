@@ -2,6 +2,7 @@ import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { BrowserWindow } from "electron";
+import { sanitizeForPath } from "../../core/download/naming.ts";
 import {
   checkFfmpegAvailable,
   checkYtDlpAvailable,
@@ -60,6 +61,19 @@ class AppState {
   get downloadedApiIds(): Set<number> {
     return new Set(this.downloaded.map((e) => e.apiId));
   }
+  get downloadedDirNames(): Set<string> {
+    return new Set(this.downloaded.map((e) => e.dirName));
+  }
+
+  /** Bereits vorhanden? — per USDB-apiId ODER abgeleitetem Ordnernamen (Archiv-Import). */
+  isDownloadedSong(song: Pick<Song, "apiId" | "artist" | "title">): boolean {
+    return (
+      this.downloadedApiIds.has(song.apiId) ||
+      this.downloadedDirNames.has(
+        sanitizeForPath(`${song.artist} - ${song.title}`),
+      )
+    );
+  }
 
   setStatus(patch: Partial<AppStatus>): void {
     this.status = { ...this.status, ...patch };
@@ -81,9 +95,8 @@ class AppState {
   /** Fügt Songs dedupliziert hinzu (gegen Queue UND Verlauf). Gibt Anzahl neuer Songs zurück. */
   addToQueue(songs: Song[]): number {
     const existing = new Set(this.queue.map((s) => s.apiId));
-    const downloaded = this.downloadedApiIds;
     const fresh = songs.filter(
-      (s) => !existing.has(s.apiId) && !downloaded.has(s.apiId),
+      (s) => !existing.has(s.apiId) && !this.isDownloadedSong(s),
     );
     if (fresh.length > 0) this.setQueue([...this.queue, ...fresh]);
     return fresh.length;

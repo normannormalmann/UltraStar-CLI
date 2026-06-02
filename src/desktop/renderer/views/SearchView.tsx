@@ -1,6 +1,7 @@
 import { Check, ChevronLeft, ChevronRight, Database, Download, Plus } from "lucide-react";
 import type { FC, FormEvent } from "react";
 import { useMemo, useState } from "react";
+import { sanitizeForPath } from "../../../core/download/naming.ts";
 import type {
   AppStatus,
   DownloadedEntry,
@@ -25,6 +26,10 @@ export const SearchView: FC<{
   const fetchAllProgress = useIpcEvent("event:fetchAllProgress", null);
   const downloadedIds = useMemo(
     () => new Set(downloaded.map((e) => e.apiId)),
+    [downloaded],
+  );
+  const downloadedDirs = useMemo(
+    () => new Set(downloaded.map((e) => e.dirName)),
     [downloaded],
   );
   const canDownload =
@@ -105,7 +110,11 @@ export const SearchView: FC<{
             </thead>
             <tbody>
               {songs.map((s) => {
-                const isDownloaded = downloadedIds.has(s.apiId);
+                const isDownloaded =
+                  downloadedIds.has(s.apiId) ||
+                  downloadedDirs.has(
+                    sanitizeForPath(`${s.artist} - ${s.title}`),
+                  );
                 return (
                   <tr key={s.apiId}>
                     <td>
