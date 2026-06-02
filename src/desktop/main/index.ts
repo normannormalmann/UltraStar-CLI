@@ -1,5 +1,7 @@
 import { join } from "node:path";
-import { BrowserWindow, app, shell } from "electron";
+import { BrowserWindow, app, ipcMain, shell } from "electron";
+import { registerIpcHandlers } from "./ipc.ts";
+import { initializeState } from "./state.ts";
 
 const createWindow = (): BrowserWindow => {
   const win = new BrowserWindow({
@@ -39,7 +41,9 @@ const createWindow = (): BrowserWindow => {
 };
 
 void app.whenReady().then(() => {
+  registerIpcHandlers(ipcMain);
   createWindow();
+  void initializeState();
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
