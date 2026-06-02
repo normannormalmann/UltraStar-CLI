@@ -1001,6 +1001,7 @@ export const App: FC = () => {
                 <DownloadedList
                   entries={downloadedEntries}
                   currentDownloading={activeDownloads.map((d) => ({
+                    apiId: d.apiId,
                     artist: d.artist,
                     title: d.title,
                     progress: d.progress,

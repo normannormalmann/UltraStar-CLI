@@ -48,8 +48,8 @@ function parseTxtHeaders(content: string): { artist?: string; title?: string } {
   for (const line of content.split("\n")) {
     const match = /^#(\w+):(.*)$/.exec(line.trim());
     if (!match) continue;
-    const key = match[1].toUpperCase();
-    const value = match[2].trim();
+    const key = match[1]?.toUpperCase();
+    const value = match[2]?.trim() ?? "";
     if (key === "ARTIST") result.artist = value;
     if (key === "TITLE") result.title = value;
     if (result.artist && result.title) break;

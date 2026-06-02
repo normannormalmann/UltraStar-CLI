@@ -42,6 +42,7 @@ export const parseSongFromTable = (html: string | undefined): Song | null => {
 
   const songId = Number.parseInt(
     html.match(/show_detail\((\d+)\)/)?.[1] ?? "0",
+    10,
   );
   const songMetadata = [
     ...html.matchAll(/<td\s+.*?>(?:<a.*?>)?(.*)<\/td>/gm),
@@ -77,6 +78,7 @@ export const parseSongFromTable = (html: string | undefined): Song | null => {
 export const parseSongsFromSearch = (html: string): Page => {
   const totalPages = Number.parseInt(
     html.match(/<br>There are\s+\d+\s+results? on\s+(\d+)\s+page/)?.[1] ?? "0",
+    10,
   );
 
   const songsHtml = [

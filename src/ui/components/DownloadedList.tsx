@@ -6,6 +6,7 @@ import ProgressBar from "./ProgressBar.tsx";
 export type DownloadedListProps = {
   entries: DownloadedEntry[];
   currentDownloading?: Array<{
+    apiId: number;
     artist: string;
     title: string;
     progress: number; // 0..1
@@ -23,9 +24,9 @@ export const DownloadedList: FC<DownloadedListProps> = ({
       </Text>
       {currentDownloading && currentDownloading.length > 0 && (
         <Box flexDirection="column" marginBottom={1}>
-          {currentDownloading.map((d, idx) => (
+          {currentDownloading.map((d) => (
             <Box
-              key={`${d.artist}-${d.title}-${idx}`}
+              key={d.apiId}
               width="90%"
               flexDirection="row"
               alignItems="center"
