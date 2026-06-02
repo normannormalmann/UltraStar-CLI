@@ -40,8 +40,19 @@ importArchive(downloadDir): Effect<{ imported: number; importedWithoutVideo: num
 
 Importierte Einträge ohne `video.mp4` erscheinen wegen des bestehenden UI-Filters (nur Einträge mit Video werden gelistet) erst nach einer Reparatur in der Liste — der Ergebnistext macht das transparent. Tracking-seitig sind sie sofort vorhanden (Dedupe in Suche/Queue greift).
 
+## Nachtrag: Dedupe/✓ über Ordnernamen (genehmigt 2026-06-02)
+
+Nutzer-Einwand: Die importierten Songs stammen ursprünglich von USDB — ohne Verknüpfung würde die Suche sie nicht als vorhanden markieren und Bulk-Queueing würde den Bestand erneut herunterladen (Dedupe lief nur über die USDB-apiId).
+
+Lösung ohne Netz-Lookups: Ordnernamen wurden beim Download deterministisch aus den USDB-Metadaten erzeugt (`sanitizeForPath("Artist - Titel")`). Dieselbe Funktion auf ein Suchergebnis angewandt ergibt den Ordnernamen, den der Song hätte — Treffer gegen die getrackten `dirName`s = bereits vorhanden.
+
+- `sanitizeForPath` wird aus `downloadSong.ts` in ein **pures** Modul `src/core/download/naming.ts` extrahiert (ohne node:-Imports, damit der Renderer es importieren kann); `downloadSong.ts` importiert es von dort. Charakterisierungs-Tests sichern das Verhalten.
+- `AppState` erhält `downloadedDirNames: Set<string>` und eine Methode `isDownloadedSong(song)` (apiId-Treffer ODER dirName-Treffer); genutzt in `addToQueue`, `downloadSongItem` und beiden Filterstellen von `processQueue`.
+- SearchView markiert `isDownloaded` ebenfalls per ID **oder** dirName-Abgleich.
+- Grenze (bewusst akzeptiert): Wurden Artist/Titel auf USDB seit dem Download geändert, gibt es keinen Treffer.
+
 ## Nicht enthalten (YAGNI)
 
 - Kein Import in der TUI (Core-Funktion ist wiederverwendbar, Anbindung später möglich).
-- Keine USDB-Verknüpfung/Metadaten-Anreicherung beim Import (IDs bleiben negativ).
+- Keine USDB-Verknüpfung/Metadaten-Anreicherung beim Import (IDs bleiben negativ; Dedupe läuft zusätzlich über Ordnernamen, siehe Nachtrag).
 - Kein Datei-Watcher/Auto-Sync.

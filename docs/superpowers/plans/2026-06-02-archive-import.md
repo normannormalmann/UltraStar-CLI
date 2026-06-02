@@ -479,3 +479,190 @@ git commit -m "feat(desktop): archive import button in downloaded view"
 ## Verhaltens-Erinnerung aus der Spec
 
 Importierte Einträge ohne `video.mp4` erscheinen erst nach einer Reparatur in der Liste (bestehender UI-Filter in `reloadDownloadedEntries`); die Ergebnis-Meldung weist darauf hin. Tracking-seitig wirken sie sofort (Dedupe in Suche/Queue).
+
+---
+
+# Nachtrag: Dedupe/✓ über Ordnernamen (Spec-Nachtrag vom 2026-06-02)
+
+### Task N1: `sanitizeForPath` als pures Modul extrahieren (TDD)
+
+**Files:**
+- Create: `src/core/download/naming.ts`
+- Test: `src/core/download/naming.test.ts`
+- Modify: `src/core/download/downloadSong.ts` (Funktion + UMLAUT_MAP entfernen, Import ergänzen, `basename` aus dem node:path-Import streichen)
+
+- [ ] **Step 1: Failing Test** — `src/core/download/naming.test.ts`:
+
+```ts
+import { expect, test } from "bun:test";
+import { sanitizeForPath } from "./naming.ts";
+
+test("replaces umlauts and collapses spaces to underscores", () => {
+  expect(sanitizeForPath("Grönemeyer - Männer")).toBe("Groenemeyer_-_Maenner");
+});
+
+test("replaces dangerous characters with underscores", () => {
+  expect(sanitizeForPath('AC/DC: "Back?"')).toBe("AC_DC_Back_");
+});
+
+test("strips parent-directory traversal sequences", () => {
+  expect(sanitizeForPath("../../etc")).toBe("_etc");
+});
+
+test("caps the input at 100 characters", () => {
+  expect(sanitizeForPath("a".repeat(150))).toBe("a".repeat(100));
+});
+
+test("falls back to 'unnamed' when nothing survives", () => {
+  expect(sanitizeForPath("")).toBe("unnamed");
+  expect(sanitizeForPath("...")).toBe("unnamed");
+});
+```
+
+- [ ] **Step 2: Rot sehen** — `bun test src/core/download/naming.test.ts` → FAIL (Modul fehlt).
+
+- [ ] **Step 3: `src/core/download/naming.ts` anlegen** — Funktionskörper 1:1 aus `downloadSong.ts` übernehmen, mit EINER Änderung: das node:path-`basename` wird durch ein pures Äquivalent ersetzt (nach den Ersetzungen können keine Separatoren mehr vorkommen; reines Sicherheitsnetz), damit das Modul ohne node:-Imports auskommt und im Renderer importierbar ist:
+
+```ts
+const UMLAUT_MAP: Record<string, string> = {
+  ä: "ae",
+  Ä: "Ae",
+  ö: "oe",
+  Ö: "Oe",
+  ü: "ue",
+  Ü: "Ue",
+  ß: "ss",
+};
+
+/**
+ * Securely sanitizes a string for use in file paths.
+ * Prevents path traversal, injection, and other attacks.
+ * Pure (keine node:-Imports) — auch im Renderer nutzbar, um aus
+ * "Artist - Titel" den Download-Ordnernamen abzuleiten.
+ */
+export const sanitizeForPath = (name: string): string => {
+  // Remove NUL-bytes and control characters (0x00-0x1f and 0x80-0x9f)
+  // biome-ignore lint/suspicious/noControlCharactersInRegex: intentional - stripping control chars for path safety
+  let cleaned = name.replace(/[\x00-\x1f\x80-\x9f]/g, "");
+
+  // Limit length to prevent buffer overflow attacks (Windows MAX_PATH is 260, but we're conservative)
+  const MAX_LENGTH = 100;
+  cleaned = cleaned.slice(0, MAX_LENGTH);
+
+  // Replace Umlaute
+  cleaned = cleaned.replace(/[äÄöÖüÜß]/g, (c) => UMLAUT_MAP[c] ?? c);
+
+  // Replace dangerous characters with underscore (instead of space)
+  // This prevents: directory traversal, command injection, etc.
+  cleaned = cleaned.replace(/[\\/:"*?<>|]/g, "_");
+
+  // Remove parent directory traversal sequences explicitly
+  cleaned = cleaned.replace(/\.\./g, "");
+
+  // Remove leading/trailing dots and spaces
+  cleaned = cleaned.trim().replace(/^\.+|\.+$/g, "");
+
+  // Collapse multiple underscores/spaces into single underscore
+  cleaned = cleaned.replace(/[_\s]+/g, "_");
+
+  // Pure basename equivalent (separators are already replaced above; safety net)
+  let sanitized = cleaned.split(/[\\/]/).pop() ?? "";
+
+  // Final safety check: if empty after sanitization, use a default name
+  if (!sanitized || sanitized.length === 0) {
+    sanitized = "unnamed";
+  }
+
+  return sanitized;
+};
+```
+
+In `downloadSong.ts`: `UMLAUT_MAP` + `sanitizeForPath` löschen, oben `import { sanitizeForPath } from "./naming.ts";` ergänzen, Import-Zeile zu `import { join } from "node:path";` ändern.
+
+- [ ] **Step 4: Grün sehen + Checks**
+
+```powershell
+bun test src/core/download/naming.test.ts   # 5 pass
+bun test src                                 # 30 pass (25 + 5)
+bun x tsc --noEmit                           # 0
+bun run build                                # CLI-Build ok (downloadSong-Pfad unverändert)
+```
+
+- [ ] **Step 5: Commit**
+
+```powershell
+git add src/core/download
+git commit -m "refactor(core): extract pure sanitizeForPath into naming module"
+```
+
+### Task N2: Dedupe/✓ per dirName in Main und SearchView
+
+**Files:**
+- Modify: `src/desktop/main/state.ts`
+- Modify: `src/desktop/main/downloads.ts`
+- Modify: `src/desktop/renderer/views/SearchView.tsx`
+
+- [ ] **Step 1: `state.ts`** — Import ergänzen (`import { sanitizeForPath } from "../../core/download/naming.ts";`), nach dem `downloadedApiIds`-Getter:
+
+```ts
+  get downloadedDirNames(): Set<string> {
+    return new Set(this.downloaded.map((e) => e.dirName));
+  }
+
+  /** Bereits vorhanden? — per USDB-apiId ODER abgeleitetem Ordnernamen (Archiv-Import). */
+  isDownloadedSong(song: Pick<Song, "apiId" | "artist" | "title">): boolean {
+    return (
+      this.downloadedApiIds.has(song.apiId) ||
+      this.downloadedDirNames.has(
+        sanitizeForPath(`${song.artist} - ${song.title}`),
+      )
+    );
+  }
+```
+
+`addToQueue`-Filter ersetzen durch:
+
+```ts
+  addToQueue(songs: Song[]): number {
+    const existing = new Set(this.queue.map((s) => s.apiId));
+    const fresh = songs.filter(
+      (s) => !existing.has(s.apiId) && !this.isDownloadedSong(s),
+    );
+    if (fresh.length > 0) this.setQueue([...this.queue, ...fresh]);
+    return fresh.length;
+  }
+```
+
+- [ ] **Step 2: `downloads.ts`** — in `downloadSongItem` die Zeile `if (state.downloadedApiIds.has(song.apiId)) return;` ersetzen durch `if (state.isDownloadedSong(song)) return;`. In `processQueue` BEIDE Filterstellen `(s) => !state.downloadedApiIds.has(s.apiId)` bzw. `(song) => !state.downloadedApiIds.has(song.apiId)` ersetzen durch `(s) => !state.isDownloadedSong(s)`.
+
+- [ ] **Step 3: `SearchView.tsx`** — Import ergänzen (`import { sanitizeForPath } from "../../../core/download/naming.ts";` — Achtung: drei Ebenen hoch aus `views/`), nach dem `downloadedIds`-Memo:
+
+```ts
+  const downloadedDirs = useMemo(
+    () => new Set(downloaded.map((e) => e.dirName)),
+    [downloaded],
+  );
+```
+
+und in der Tabellen-Map die Zeile `const isDownloaded = downloadedIds.has(s.apiId);` ersetzen durch:
+
+```ts
+                const isDownloaded =
+                  downloadedIds.has(s.apiId) ||
+                  downloadedDirs.has(
+                    sanitizeForPath(`${s.artist} - ${s.title}`),
+                  );
+```
+
+- [ ] **Step 4: Verifizieren & committen**
+
+```powershell
+bun test src                  # 30 pass
+bun x tsc --noEmit            # 0
+bun x electron-vite build     # ok
+bun x biome lint src          # 0
+git add src/desktop
+git commit -m "feat(desktop): dedupe and downloaded marker via derived dir names"
+```
+
+- [ ] **Step 5: Manueller Test** — App starten, Archiv importieren, dann nach einem importierten Song suchen: ✓ erscheint, ⬇/＋-Buttons fehlen; „Seite in Queue" überspringt ihn (Badge zählt entsprechend weniger hoch).
