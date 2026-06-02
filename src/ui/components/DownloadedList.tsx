@@ -1,6 +1,6 @@
 import { Box, Text } from "ink";
 import type { FC } from "react";
-import type { DownloadedEntry } from "../../storage/downloaded.ts";
+import type { DownloadedEntry } from "../../core/storage/downloaded.ts";
 import ProgressBar from "./ProgressBar.tsx";
 
 export type DownloadedListProps = {

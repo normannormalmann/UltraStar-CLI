@@ -4,21 +4,21 @@ import { Effect } from "effect";
 import { Box, Text, useApp, useInput } from "ink";
 import type { FC } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { type Page, type Song, searchSongs } from "../api/usdb/search.ts";
+import { type Page, type Song, searchSongs } from "../core/api/usdb/search.ts";
 import {
   checkFfmpegAvailable,
   checkYtDlpAvailable,
-} from "../api/youtube/check.ts";
-import { ffmpegInstallHint, ytDlpInstallHint } from "../platform.ts";
-import { ensureSession } from "../session.ts";
-import { type AppConfig, loadConfig, saveConfig } from "../storage/config.ts";
+} from "../core/api/youtube/check.ts";
+import { ffmpegInstallHint, ytDlpInstallHint } from "../core/platform.ts";
+import { ensureSession } from "../core/session.ts";
+import { type AppConfig, loadConfig, saveConfig } from "../core/storage/config.ts";
 import {
   appendDownloadedEntry,
   type DownloadedEntry,
   loadDownloadedEntries,
-} from "../storage/downloaded.ts";
-import { appendFailedDownload } from "../storage/failedDownloads.ts";
-import { loadQueue, saveQueue } from "../storage/queue.ts";
+} from "../core/storage/downloaded.ts";
+import { appendFailedDownload } from "../core/storage/failedDownloads.ts";
+import { loadQueue, saveQueue } from "../core/storage/queue.ts";
 import { DownloadedList } from "./components/DownloadedList.tsx";
 import HelpRow from "./components/HelpRow.tsx";
 import LoadingRow from "./components/LoadingRow.tsx";

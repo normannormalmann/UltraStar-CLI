@@ -1,17 +1,17 @@
 import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
-import type { YoutubeLink } from "../api/usdb/youtube.ts";
-import { getYoutubeLinksById } from "../api/usdb/youtube.ts";
-import { downloadYoutubeVideoWithProgress } from "../api/youtube/download.ts";
-import type { YoutubeVideo } from "../api/youtube/search.ts";
-import { searchYoutubeVideos } from "../api/youtube/search.ts";
-import type { DownloadedEntry } from "../storage/downloaded.ts";
+import type { YoutubeLink } from "../core/api/usdb/youtube.ts";
+import { getYoutubeLinksById } from "../core/api/usdb/youtube.ts";
+import { downloadYoutubeVideoWithProgress } from "../core/api/youtube/download.ts";
+import type { YoutubeVideo } from "../core/api/youtube/search.ts";
+import { searchYoutubeVideos } from "../core/api/youtube/search.ts";
+import type { DownloadedEntry } from "../core/storage/downloaded.ts";
 import {
   appendDownloadedEntry,
   loadDownloadedEntries,
   saveDownloadedEntries,
-} from "../storage/downloaded.ts";
+} from "../core/storage/downloaded.ts";
 
 export type RepairProgress = {
   current: number;

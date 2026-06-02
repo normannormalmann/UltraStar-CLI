@@ -1,14 +1,14 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join, basename } from "node:path";
 import { Effect } from "effect";
-import { downloadCoverById } from "../api/usdb/cover.ts";
-import { getLyricsById } from "../api/usdb/lyrics.ts";
-import type { Song } from "../api/usdb/search.ts";
-import type { YoutubeLink } from "../api/usdb/youtube.ts";
-import { getYoutubeLinksById } from "../api/usdb/youtube.ts";
-import { downloadYoutubeVideoWithProgress } from "../api/youtube/download.ts";
-import type { YoutubeVideo } from "../api/youtube/search.ts";
-import { searchYoutubeVideos } from "../api/youtube/search.ts";
+import { downloadCoverById } from "../core/api/usdb/cover.ts";
+import { getLyricsById } from "../core/api/usdb/lyrics.ts";
+import type { Song } from "../core/api/usdb/search.ts";
+import type { YoutubeLink } from "../core/api/usdb/youtube.ts";
+import { getYoutubeLinksById } from "../core/api/usdb/youtube.ts";
+import { downloadYoutubeVideoWithProgress } from "../core/api/youtube/download.ts";
+import type { YoutubeVideo } from "../core/api/youtube/search.ts";
+import { searchYoutubeVideos } from "../core/api/youtube/search.ts";
 
 export type DownloadSongParams = {
   song: Song;
