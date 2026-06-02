@@ -43,19 +43,61 @@ export function stableHash(s: string): number {
   return h < 0 ? h : ~h; // always negative, never 0
 }
 
-export function parseTxtHeaders(content: string): {
+export type TxtHeaders = {
   artist?: string;
   title?: string;
-} {
-  const result: { artist?: string; title?: string } = {};
+  language?: string;
+  genre?: string;
+  edition?: string;
+  creator?: string;
+  year?: number;
+  bpm?: number;
+};
+
+export function parseTxtHeaders(content: string): TxtHeaders {
+  const result: TxtHeaders = {};
   for (const line of content.split("\n")) {
-    const match = /^#(\w+):(.*)$/.exec(line.trim());
+    const trimmed = line.trim();
+    if (trimmed.length === 0) continue;
+    if (!trimmed.startsWith("#")) break; // Header-Block ist zusammenhängend am Dateianfang
+    const match = /^#(\w+):(.*)$/.exec(trimmed);
     if (!match) continue;
     const key = match[1]?.toUpperCase();
     const value = match[2]?.trim() ?? "";
-    if (key === "ARTIST") result.artist = value;
-    if (key === "TITLE") result.title = value;
-    if (result.artist && result.title) break;
+    if (value.length === 0) continue;
+    switch (key) {
+      case "ARTIST":
+        result.artist = value;
+        break;
+      case "TITLE":
+        result.title = value;
+        break;
+      case "LANGUAGE":
+        result.language = value;
+        break;
+      case "GENRE":
+        result.genre = value;
+        break;
+      case "EDITION":
+        result.edition = value;
+        break;
+      case "CREATOR":
+        result.creator = value;
+        break;
+      case "YEAR": {
+        const y = Number.parseInt(value, 10);
+        if (!Number.isNaN(y)) result.year = y;
+        break;
+      }
+      case "BPM": {
+        // Deutsche Dateien nutzen Komma als Dezimaltrenner ("294,5")
+        const b = Number.parseFloat(value.replace(",", "."));
+        if (!Number.isNaN(b)) result.bpm = b;
+        break;
+      }
+      default:
+        break;
+    }
   }
   return result;
 }
