@@ -61,18 +61,24 @@ class AppState {
   get downloadedApiIds(): Set<number> {
     return new Set(this.downloaded.map((e) => e.apiId));
   }
-  get downloadedDirNames(): Set<string> {
-    return new Set(this.downloaded.map((e) => e.dirName));
+  /**
+   * Baut EINMALIG ein Prädikat „bereits vorhanden?" (apiId ODER abgeleiteter
+   * Ordnername, case-insensitiv wegen NTFS). Vor .filter()-Läufen hoisten —
+   * pro Aufruf werden die Sets nur einmal gebaut.
+   */
+  makeIsDownloadedSong(): (
+    song: Pick<Song, "apiId" | "artist" | "title">,
+  ) => boolean {
+    const ids = this.downloadedApiIds;
+    const dirs = new Set(this.downloaded.map((e) => e.dirName.toLowerCase()));
+    return (song) =>
+      ids.has(song.apiId) ||
+      dirs.has(sanitizeForPath(`${song.artist} - ${song.title}`).toLowerCase());
   }
 
-  /** Bereits vorhanden? — per USDB-apiId ODER abgeleitetem Ordnernamen (Archiv-Import). */
+  /** Einzelabfrage; für Filter-Läufe makeIsDownloadedSong() hoisten. */
   isDownloadedSong(song: Pick<Song, "apiId" | "artist" | "title">): boolean {
-    return (
-      this.downloadedApiIds.has(song.apiId) ||
-      this.downloadedDirNames.has(
-        sanitizeForPath(`${song.artist} - ${song.title}`),
-      )
-    );
+    return this.makeIsDownloadedSong()(song);
   }
 
   setStatus(patch: Partial<AppStatus>): void {
@@ -95,8 +101,9 @@ class AppState {
   /** Fügt Songs dedupliziert hinzu (gegen Queue UND Verlauf). Gibt Anzahl neuer Songs zurück. */
   addToQueue(songs: Song[]): number {
     const existing = new Set(this.queue.map((s) => s.apiId));
+    const isDownloaded = this.makeIsDownloadedSong();
     const fresh = songs.filter(
-      (s) => !existing.has(s.apiId) && !this.isDownloadedSong(s),
+      (s) => !existing.has(s.apiId) && !isDownloaded(s),
     );
     if (fresh.length > 0) this.setQueue([...this.queue, ...fresh]);
     return fresh.length;

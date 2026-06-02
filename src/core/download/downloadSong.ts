@@ -25,7 +25,6 @@ export type DownloadSongResult = {
   songDir: string;
 };
 
-
 export const downloadSong = (
   params: DownloadSongParams,
 ): Effect.Effect<DownloadSongResult, Error> =>

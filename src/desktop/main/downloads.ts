@@ -119,18 +119,16 @@ export const processQueue = async (): Promise<void> => {
   state.setQueueRunning(true);
   queueCancelRequested = false;
   try {
-    let current = state.queue.filter(
-      (s) => !state.isDownloadedSong(s),
-    );
+    let isDownloaded = state.makeIsDownloadedSong();
+    let current = state.queue.filter((s) => !isDownloaded(s));
     while (current.length > 0 && !queueCancelRequested) {
       const batch = current.slice(0, DOWNLOAD_CONCURRENCY);
       await Promise.all(batch.map((song) => downloadSongItem(song)));
       state.setQueue(
         state.queue.filter((s) => !batch.some((b) => b.apiId === s.apiId)),
       );
-      current = current
-        .slice(batch.length)
-        .filter((s) => !state.isDownloadedSong(s));
+      isDownloaded = state.makeIsDownloadedSong();
+      current = current.slice(batch.length).filter((s) => !isDownloaded(s));
     }
   } finally {
     state.setQueueRunning(false);

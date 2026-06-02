@@ -29,7 +29,7 @@ export const SearchView: FC<{
     [downloaded],
   );
   const downloadedDirs = useMemo(
-    () => new Set(downloaded.map((e) => e.dirName)),
+    () => new Set(downloaded.map((e) => e.dirName.toLowerCase())),
     [downloaded],
   );
   const canDownload =
@@ -113,7 +113,7 @@ export const SearchView: FC<{
                 const isDownloaded =
                   downloadedIds.has(s.apiId) ||
                   downloadedDirs.has(
-                    sanitizeForPath(`${s.artist} - ${s.title}`),
+                    sanitizeForPath(`${s.artist} - ${s.title}`).toLowerCase(),
                   );
                 return (
                   <tr key={s.apiId}>
