@@ -9,6 +9,12 @@ export type DownloadedEntry = {
   dirName: string;
   songDir: string;
   downloadedAt: string; // ISO
+  language?: string;
+  genre?: string;
+  edition?: string;
+  creator?: string;
+  year?: number;
+  bpm?: number;
 };
 
 let memoryCache: DownloadedEntry[] | null = null;

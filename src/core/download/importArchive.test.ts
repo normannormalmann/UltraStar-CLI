@@ -62,12 +62,13 @@ test("imports songs, counts missing videos, skips tracked, ignores non-song fold
         dirName: "Bereits Da",
         songDir: join(root, "Bereits Da"),
         downloadedAt: "2026-01-01T00:00:00.000Z",
+        language: "x",
       },
     ]),
   );
 
   const result = await Effect.runPromise(importArchive(root));
-  expect(result).toEqual({ imported: 2, importedWithoutVideo: 1, skipped: 1 });
+  expect(result).toEqual({ imported: 2, importedWithoutVideo: 1, skipped: 1, refreshed: 0 });
 
   const entries = await Effect.runPromise(loadDownloadedEntries);
   expect(entries).toHaveLength(3);
@@ -109,4 +110,42 @@ test("reports progress and finishes with current === total", async () => {
   const last = calls[calls.length - 1];
   expect(last?.total).toBe(3);
   expect(last?.current).toBe(3);
+});
+
+test("stores metadata and backfills tracked entries missing language", async () => {
+  const root = await makeArchive();
+  await makeSong(root, "Meta Song", {
+    txt: "#ARTIST:Meta\n#TITLE:Song\n#LANGUAGE:German\n#GENRE:Pop\n#YEAR:1999\n",
+    video: true,
+  });
+  await makeSong(root, "Old Tracked", {
+    txt: "#ARTIST:Old\n#TITLE:Tracked\n#LANGUAGE:English\n",
+    video: true,
+  });
+  await Effect.runPromise(
+    saveDownloadedEntries([
+      {
+        apiId: -5,
+        artist: "Old",
+        title: "Tracked",
+        dirName: "Old Tracked",
+        songDir: join(root, "Old Tracked"),
+        downloadedAt: "2026-01-01T00:00:00.000Z",
+      },
+    ]),
+  );
+
+  const result = await Effect.runPromise(importArchive(root));
+  expect(result.imported).toBe(1);
+  expect(result.refreshed).toBe(1);
+  expect(result.skipped).toBe(0);
+
+  const entries = await Effect.runPromise(loadDownloadedEntries);
+  const meta = entries.find((e) => e.dirName === "Meta Song");
+  expect(meta?.language).toBe("German");
+  expect(meta?.genre).toBe("Pop");
+  expect(meta?.year).toBe(1999);
+  const old = entries.find((e) => e.dirName === "Old Tracked");
+  expect(old?.language).toBe("English");
+  expect(old?.artist).toBe("Old"); // vorhandene Felder nicht überschrieben
 });
