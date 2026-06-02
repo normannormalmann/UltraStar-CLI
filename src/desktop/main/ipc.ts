@@ -8,7 +8,14 @@ import type {
   SearchRequest,
 } from "../shared/ipc-contract.ts";
 import { binariesStatus, installMissingBinaries } from "./binaries.ts";
+import {
+  downloadSongItem,
+  fetchAllIntoQueue,
+  processQueue,
+  requestQueueCancel,
+} from "./downloads.ts";
 import { state } from "./state.ts";
+import type { Song } from "../shared/ipc-contract.ts";
 
 export const SEARCH_PAGE_SIZE = 20;
 
@@ -61,34 +68,40 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
       await shell.openPath(path);
     },
 
-    // ── Platzhalter: werden in den Tasks 5–8 implementiert ──
-    "download:single": async () => {
-      throw new Error("not implemented until task 6");
+    "download:single": async (song: Song) => {
+      void downloadSongItem(song);
     },
+
     "downloads:failedList": async () => {
       throw new Error("not implemented until task 7");
     },
-    "queue:add": async () => {
-      throw new Error("not implemented until task 6");
+
+    "queue:add": async (songs: Song[]) => state.addToQueue(songs),
+
+    "queue:remove": async (apiId: number) => {
+      state.setQueue(state.queue.filter((s) => s.apiId !== apiId));
     },
-    "queue:remove": async () => {
-      throw new Error("not implemented until task 6");
-    },
+
     "queue:clear": async () => {
-      throw new Error("not implemented until task 6");
+      state.setQueue([]);
     },
+
     "queue:start": async () => {
-      throw new Error("not implemented until task 6");
+      void processQueue();
     },
+
     "queue:cancel": async () => {
-      throw new Error("not implemented until task 6");
+      requestQueueCancel();
     },
-    "queue:fetchAllPages": async () => {
-      throw new Error("not implemented until task 6");
+
+    "queue:fetchAllPages": async (req: { artist: string; title: string }) => {
+      void fetchAllIntoQueue(req.artist, req.title);
     },
+
     "queue:entireDatabase": async () => {
-      throw new Error("not implemented until task 6");
+      void fetchAllIntoQueue("", "");
     },
+
     "repair:start": async () => {
       throw new Error("not implemented until task 7");
     },
