@@ -1,7 +1,8 @@
 import { join } from "node:path";
-import { BrowserWindow, app, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { installMissingBinaries, prependManagedBinToPath } from "./binaries.ts";
 import { registerIpcHandlers } from "./ipc.ts";
-import { initializeState } from "./state.ts";
+import { broadcast, initializeState, state } from "./state.ts";
 
 const createWindow = (): BrowserWindow => {
   const win = new BrowserWindow({
@@ -42,8 +43,23 @@ const createWindow = (): BrowserWindow => {
 
 void app.whenReady().then(() => {
   registerIpcHandlers(ipcMain);
+  prependManagedBinToPath();
   createWindow();
-  void initializeState();
+  void initializeState().then(() => {
+    // Spec: fehlende Tools werden beim ersten Start automatisch geladen
+    const { ytDlpAvailable, ffmpegAvailable } = state.status;
+    if (
+      process.platform === "win32" &&
+      (ytDlpAvailable === false || ffmpegAvailable === false)
+    ) {
+      void installMissingBinaries().catch((err) => {
+        broadcast("event:error", {
+          context: "binaries",
+          message: err instanceof Error ? err.message : String(err),
+        });
+      });
+    }
+  });
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
