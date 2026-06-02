@@ -10,6 +10,7 @@ import type {
 import { scanAndRepairVideos } from "../../core/download/repairSongs.ts";
 import { loadFailedDownloads } from "../../core/storage/failedDownloads.ts";
 import { binariesStatus, installMissingBinaries } from "./binaries.ts";
+import { getCoverDataUrl } from "./covers.ts";
 import {
   downloadSongItem,
   fetchAllIntoQueue,
@@ -140,9 +141,7 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
     "binaries:install": async (force?: boolean) => {
       await installMissingBinaries(force === true);
     },
-    "covers:get": async () => {
-      throw new Error("not implemented until task 8");
-    },
+    "covers:get": async (apiId: number) => getCoverDataUrl(apiId),
   };
 
 export const registerIpcHandlers = (ipcMain: IpcMain): void => {

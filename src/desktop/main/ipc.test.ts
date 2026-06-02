@@ -1,7 +1,7 @@
 import { expect, mock, test } from "bun:test";
 
 mock.module("electron", () => ({
-	app: { getVersion: () => "0.0.0-test" },
+	app: { getVersion: () => "0.0.0-test", getPath: () => "C:\\tmp-test" },
 	dialog: { showOpenDialog: async () => ({ canceled: true, filePaths: [] }) },
 	shell: { openPath: async () => "" },
 	BrowserWindow: { getAllWindows: () => [] },
