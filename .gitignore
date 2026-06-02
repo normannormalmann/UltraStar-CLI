@@ -44,3 +44,7 @@ cookies.txt
 # Claude Code
 .claude/
 .superpowers/
+
+# Playwright
+test-results/
+playwright-report/
