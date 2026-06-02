@@ -1,5 +1,5 @@
 import { render } from "ink";
-import App from "./ui/App.tsx";
+import App from "./tui/App.tsx";
 
 const ENTER_ALTERNATE_SCREEN = "\u001b[?1049h";
 const LEAVE_ALTERNATE_SCREEN = "\u001b[?1049l";
