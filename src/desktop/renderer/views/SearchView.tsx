@@ -1,14 +1,49 @@
-import { Check, ChevronLeft, ChevronRight, Database, Download, Plus } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  Check,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Database,
+  Download,
+  Plus,
+  SlidersHorizontal,
+} from "lucide-react";
 import type { FC, FormEvent } from "react";
 import { useMemo, useState } from "react";
 import { sanitizeForPath } from "../../../core/download/naming.ts";
 import type {
   AppStatus,
+  BulkQueueRequest,
   DownloadedEntry,
   Song,
 } from "../../shared/ipc-contract.ts";
 import CoverThumb from "../components/CoverThumb.tsx";
 import { useIpcEvent } from "../hooks.ts";
+
+const USDB_LANGUAGES = [
+  "English", "German", "Spanish", "French", "Italian", "Portuguese",
+  "Dutch", "Polish", "Swedish", "Norwegian", "Danish", "Finnish",
+  "Russian", "Japanese", "Korean", "Chinese", "Turkish", "Czech",
+  "Hungarian", "Slovak", "Croatian", "Serbian", "Greek", "Other",
+] as const;
+
+const USDB_GENRES = [
+  "Pop", "Rock", "Schlager", "Musical", "Soundtrack", "Disney", "Metal",
+  "Punk", "Country", "Folk", "Rap", "Hip-Hop", "R&B", "Soul", "Reggae",
+  "Electronic", "Dance", "Jazz", "Blues", "Christmas", "Anime", "Game",
+  "Volksmusik", "Other",
+] as const;
+
+const ORDER_OPTIONS = [
+  { value: "lastchange", label: "Zuletzt geändert" },
+  { value: "interpret", label: "Interpret" },
+  { value: "title", label: "Titel" },
+  { value: "year", label: "Jahr" },
+  { value: "rating", label: "Bewertung" },
+] as const;
 
 export const SearchView: FC<{
   downloaded: DownloadedEntry[];
@@ -22,6 +57,27 @@ export const SearchView: FC<{
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
+
+  const [showFilters, setShowFilters] = useState(false);
+  const [language, setLanguage] = useState("");
+  const [genre, setGenre] = useState("");
+  const [year, setYear] = useState("");
+  const [order, setOrder] = useState<string>("lastchange");
+  const [ud, setUd] = useState<"asc" | "desc">("desc");
+
+  const activeFilterCount =
+    (language ? 1 : 0) + (genre ? 1 : 0) + (year ? 1 : 0) +
+    (order !== "lastchange" || ud !== "desc" ? 1 : 0);
+
+  const filterRequest = (): BulkQueueRequest => ({
+    artist,
+    title,
+    language: language || undefined,
+    genre: genre || undefined,
+    year: year ? Number.parseInt(year, 10) : undefined,
+    order: order === "lastchange" ? undefined : (order as BulkQueueRequest["order"]),
+    ud: ud === "desc" ? undefined : ud,
+  });
 
   const fetchAllProgress = useIpcEvent("event:fetchAllProgress", null);
   const downloadedIds = useMemo(
@@ -40,7 +96,10 @@ export const SearchView: FC<{
     setLoading(true);
     setError(null);
     try {
-      const result = await window.ultrastar.search({ artist, title, page: p });
+      const result = await window.ultrastar.search({
+        ...filterRequest(),
+        page: p,
+      });
       setSongs(result.songs);
       setTotalPages(result.totalPages);
       setPage(p);
@@ -89,6 +148,90 @@ export const SearchView: FC<{
           {loading ? "Suche…" : "Suchen"}
         </button>
       </form>
+
+      <div style={{ marginBottom: 12 }}>
+        <button
+          className="btn small"
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+        >
+          <SlidersHorizontal size={14} aria-hidden />
+          Filter
+          {activeFilterCount > 0 && (
+            <span className="badge" style={{ marginLeft: 6 }}>
+              {activeFilterCount}
+            </span>
+          )}
+          {showFilters ? (
+            <ChevronUp size={14} aria-hidden />
+          ) : (
+            <ChevronDown size={14} aria-hidden />
+          )}
+        </button>
+        {showFilters && (
+          <div className="row" style={{ marginTop: 8, flexWrap: "wrap" }}>
+            <select
+              className="input"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+            >
+              <option value="">Sprache: Alle</option>
+              {USDB_LANGUAGES.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+            <select
+              className="input"
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+            >
+              <option value="">Genre: Alle</option>
+              {USDB_GENRES.map((g) => (
+                <option key={g} value={g}>
+                  {g}
+                </option>
+              ))}
+            </select>
+            <input
+              className="input"
+              style={{ width: 110 }}
+              type="number"
+              placeholder="Jahr"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+            />
+            <select
+              className="input"
+              value={order}
+              onChange={(e) => setOrder(e.target.value)}
+            >
+              {ORDER_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  Sortierung: {o.label}
+                </option>
+              ))}
+            </select>
+            <button
+              className="btn small"
+              type="button"
+              onClick={() => setUd((d) => (d === "desc" ? "asc" : "desc"))}
+              title={ud === "desc" ? "absteigend" : "aufsteigend"}
+            >
+              {ud === "desc" ? (
+                <>
+                  <ArrowDown size={14} aria-hidden /> absteigend
+                </>
+              ) : (
+                <>
+                  <ArrowUp size={14} aria-hidden /> aufsteigend
+                </>
+              )}
+            </button>
+          </div>
+        )}
+      </div>
 
       {error && <div className="error-banner">{error}</div>}
 
@@ -181,7 +324,7 @@ export const SearchView: FC<{
                 type="button"
                 disabled={bulkRunning}
                 onClick={() =>
-                  void window.ultrastar.queueFetchAllPages({ artist, title })
+                  void window.ultrastar.queueFetchAllPages(filterRequest())
                 }
               >
                 <Plus size={14} aria-hidden />Alle {totalPages} Seiten
