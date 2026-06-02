@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseSongFromTable, parseSongsFromSearch } from "./search.ts";
+import { buildFormBody, parseSongFromTable, parseSongsFromSearch } from "./search.ts";
 
 /**
  * Inner-HTML einer USDB-Ergebniszeile (Inhalt eines <tr>).
@@ -69,4 +69,26 @@ test("parses a full search page with total pages", () => {
 
 test("returns totalPages 0 when summary line is missing", () => {
   expect(parseSongsFromSearch("<table></table>").totalPages).toBe(0);
+});
+
+test("buildFormBody includes filters only when set", () => {
+  const base = buildFormBody({});
+  expect(base.get("order")).toBe("lastchange");
+  expect(base.get("ud")).toBe("desc");
+  expect(base.get("language")).toBeNull();
+  expect(base.get("genre")).toBeNull();
+  expect(base.get("year")).toBeNull();
+
+  const filtered = buildFormBody({
+    language: "German",
+    genre: "Pop",
+    year: 1999,
+    order: "year",
+    ud: "asc",
+  });
+  expect(filtered.get("language")).toBe("German");
+  expect(filtered.get("genre")).toBe("Pop");
+  expect(filtered.get("year")).toBe("1999");
+  expect(filtered.get("order")).toBe("year");
+  expect(filtered.get("ud")).toBe("asc");
 });

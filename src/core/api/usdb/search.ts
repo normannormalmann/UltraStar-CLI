@@ -13,9 +13,21 @@ export type Page = {
   songs: Song[];
 };
 
+export type SearchOrder =
+  | "lastchange"
+  | "interpret"
+  | "title"
+  | "year"
+  | "rating";
+
 export type SearchParams = {
   interpret?: string; // artist name
   title?: string; // song title
+  language?: string;
+  genre?: string;
+  year?: number;
+  order?: SearchOrder; // default: lastchange
+  ud?: "asc" | "desc"; // default: desc
   limit?: number; // max 100
   start?: number; // pagination offset
 };
@@ -109,18 +121,25 @@ const normalizeStart = (start: number | undefined): number => {
   return Math.max(0, Math.floor(start));
 };
 
-const buildFormBody = (params: SearchParams): URLSearchParams => {
+export const buildFormBody = (params: SearchParams): URLSearchParams => {
   const form = new URLSearchParams();
-  // Static params
-  form.set("order", "lastchange");
-  form.set("ud", "desc");
+  form.set("order", params.order ?? "lastchange");
+  form.set("ud", params.ud ?? "desc");
 
-  // Dynamic params
   if (params.interpret && params.interpret.trim().length > 0) {
     form.set("interpret", params.interpret.trim());
   }
   if (params.title && params.title.trim().length > 0) {
     form.set("title", params.title.trim());
+  }
+  if (params.language && params.language.trim().length > 0) {
+    form.set("language", params.language.trim());
+  }
+  if (params.genre && params.genre.trim().length > 0) {
+    form.set("genre", params.genre.trim());
+  }
+  if (params.year != null && Number.isFinite(params.year)) {
+    form.set("year", String(Math.floor(params.year)));
   }
   form.set("limit", String(clampLimit(params.limit)));
   form.set("start", String(normalizeStart(params.start)));
