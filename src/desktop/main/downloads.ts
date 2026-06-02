@@ -16,6 +16,17 @@ const BULK_FETCH_YIELD_MS = 10;
  */
 export const downloadSongItem = async (song: Song): Promise<void> => {
   if (!state.cookie) return;
+  if (
+    state.status.ytDlpAvailable === false ||
+    state.status.ffmpegAvailable === false
+  ) {
+    broadcast("event:error", {
+      context: "download",
+      message:
+        "yt-dlp oder ffmpeg ist nicht installiert. Downloads sind deaktiviert (Einstellungen → Tools).",
+    });
+    return;
+  }
   if (state.activeDownloads.some((d) => d.apiId === song.apiId)) return;
   if (state.downloadedApiIds.has(song.apiId)) return;
 
@@ -38,6 +49,12 @@ export const downloadSongItem = async (song: Song): Promise<void> => {
         baseDir: state.downloadDir,
         cookiesBrowser: state.browser,
         onProgress: (p) => state.patchActiveDownload(song.apiId, { progress: p }),
+        onWarning: (warnings) => {
+          broadcast("event:error", {
+            context: "warnung",
+            message: `"${song.title}": ${warnings.join(" | ")}`,
+          });
+        },
       }),
     );
 
@@ -88,6 +105,17 @@ export const requestQueueCancel = (): void => {
 /** Queue abarbeiten: Batches à DOWNLOAD_CONCURRENCY, wie die TUI. Abbrechbar. */
 export const processQueue = async (): Promise<void> => {
   if (state.queueRunning || state.queue.length === 0) return;
+  if (
+    state.status.ytDlpAvailable === false ||
+    state.status.ffmpegAvailable === false
+  ) {
+    broadcast("event:error", {
+      context: "download",
+      message:
+        "yt-dlp oder ffmpeg ist nicht installiert. Downloads sind deaktiviert (Einstellungen → Tools).",
+    });
+    return;
+  }
   state.setQueueRunning(true);
   queueCancelRequested = false;
   try {
