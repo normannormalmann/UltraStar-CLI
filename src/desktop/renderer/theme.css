@@ -166,3 +166,9 @@ html, body, #root {
   border-radius: 8px; padding: 1px 8px; font-size: 11px; margin-right: 4px;
 }
 .check { color: var(--green); }
+
+/* ── Icons ── */
+.brand { display: flex; align-items: center; gap: 8px; }
+.btn svg { vertical-align: -2px; margin-right: 6px; }
+.btn.small svg { margin-right: 4px; }
+.row-inline { display: inline-flex; align-items: center; gap: 4px; }

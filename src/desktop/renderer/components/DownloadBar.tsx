@@ -1,3 +1,4 @@
+import { Check, X } from "lucide-react";
 import type { FC } from "react";
 import type { ActiveDownload } from "../../shared/ipc-contract.ts";
 
@@ -27,8 +28,12 @@ export const DownloadBar: FC<{ downloads: ActiveDownload[] }> = ({
               <span className="muted">{Math.round(d.progress * 100)}%</span>
             </>
           )}
-          {d.status === "completed" && <span className="check">✓ fertig</span>}
-          {d.status === "failed" && <span>✗</span>}
+          {d.status === "completed" && (
+            <span className="check row-inline">
+              <Check size={14} aria-hidden /> fertig
+            </span>
+          )}
+          {d.status === "failed" && <X size={14} aria-hidden />}
         </div>
       ))}
     </div>

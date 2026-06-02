@@ -1,15 +1,24 @@
+import {
+  Check,
+  ListMusic,
+  type LucideIcon,
+  Mic,
+  Search,
+  Settings,
+  Wrench,
+} from "lucide-react";
 import type { FC } from "react";
 import type { AppStatus } from "../../shared/ipc-contract.ts";
 import StatusDots from "./StatusDots.tsx";
 
 export type ViewId = "search" | "queue" | "downloaded" | "repair" | "settings";
 
-const ITEMS: Array<{ id: ViewId; label: string; icon: string }> = [
-  { id: "search", label: "Suche", icon: "🔍" },
-  { id: "queue", label: "Queue", icon: "📋" },
-  { id: "downloaded", label: "Heruntergeladen", icon: "✅" },
-  { id: "repair", label: "Reparatur", icon: "🔧" },
-  { id: "settings", label: "Einstellungen", icon: "⚙️" },
+const ITEMS: Array<{ id: ViewId; label: string; icon: LucideIcon }> = [
+  { id: "search", label: "Suche", icon: Search },
+  { id: "queue", label: "Queue", icon: ListMusic },
+  { id: "downloaded", label: "Heruntergeladen", icon: Check },
+  { id: "repair", label: "Reparatur", icon: Wrench },
+  { id: "settings", label: "Einstellungen", icon: Settings },
 ];
 
 export const Sidebar: FC<{
@@ -19,7 +28,10 @@ export const Sidebar: FC<{
   status: AppStatus;
 }> = ({ active, onSelect, queueCount, status }) => (
   <nav className="sidebar">
-    <div className="brand">🎤 UltraStar</div>
+    <div className="brand">
+      <Mic size={18} aria-hidden />
+      UltraStar
+    </div>
     {ITEMS.map((item) => (
       <button
         key={item.id}
@@ -27,7 +39,7 @@ export const Sidebar: FC<{
         className={`nav-item${active === item.id ? " active" : ""}`}
         onClick={() => onSelect(item.id)}
       >
-        <span>{item.icon}</span>
+        <item.icon size={16} aria-hidden />
         <span>{item.label}</span>
         {item.id === "queue" && queueCount > 0 && (
           <span className="badge">{queueCount}</span>
