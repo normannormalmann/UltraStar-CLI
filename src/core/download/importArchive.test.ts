@@ -95,3 +95,18 @@ test("fails with Error when the directory does not exist", async () => {
     Effect.runPromise(importArchive(join(tmpdir(), "does-not-exist-xyz"))),
   ).rejects.toThrow();
 });
+
+test("reports progress and finishes with current === total", async () => {
+  const root = await makeArchive();
+  await makeSong(root, "P1", { video: true });
+  await makeSong(root, "P2", { video: true });
+  await makeSong(root, "P3", { video: false });
+
+  const calls: Array<{ current: number; total: number }> = [];
+  await Effect.runPromise(importArchive(root, (p) => calls.push({ ...p })));
+
+  expect(calls.length).toBeGreaterThan(0);
+  const last = calls[calls.length - 1];
+  expect(last?.total).toBe(3);
+  expect(last?.current).toBe(3);
+});

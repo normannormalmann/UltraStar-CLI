@@ -3,12 +3,15 @@ import type {
   RepairErrorType,
   RepairProgress,
 } from "../../core/download/repairSongs.ts";
-import type { ImportResult as ArchiveImportResult } from "../../core/download/importArchive.ts";
+import type {
+  ImportResult as ArchiveImportResult,
+  ImportProgress as ArchiveImportProgress,
+} from "../../core/download/importArchive.ts";
 import type { AppConfig } from "../../core/storage/config.ts";
 import type { DownloadedEntry } from "../../core/storage/downloaded.ts";
 import type { FailedDownload } from "../../core/storage/failedDownloads.ts";
 
-export type { ArchiveImportResult, AppConfig, DownloadedEntry, FailedDownload, Page, Song };
+export type { ArchiveImportResult, ArchiveImportProgress, AppConfig, DownloadedEntry, FailedDownload, Page, Song };
 
 export type SearchRequest = { artist: string; title: string; page: number };
 
@@ -95,6 +98,7 @@ export const EVENT_CHANNELS = [
   "event:activeDownloads",
   "event:downloadedChanged",
   "event:fetchAllProgress",
+  "event:archiveImportProgress",
   "event:queueRunning",
   "event:repair",
   "event:binariesProgress",
@@ -110,6 +114,7 @@ export type EventPayloads = {
   "event:activeDownloads": ActiveDownload[];
   "event:downloadedChanged": DownloadedEntry[];
   "event:fetchAllProgress": FetchAllProgress;
+  "event:archiveImportProgress": ArchiveImportProgress | null;
   "event:queueRunning": boolean;
   "event:repair": RepairState;
   "event:binariesProgress": BinariesProgress;

@@ -6,6 +6,7 @@ import type {
   DownloadedEntry,
 } from "../../shared/ipc-contract.ts";
 import CoverThumb from "../components/CoverThumb.tsx";
+import { useIpcEvent } from "../hooks.ts";
 
 const importMessage = (r: ArchiveImportResult): string => {
   const parts = [`${r.imported} Songs importiert`];
@@ -21,6 +22,7 @@ const importMessage = (r: ArchiveImportResult): string => {
 export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
   entries,
 }) => {
+  const importProgress = useIpcEvent("event:archiveImportProgress", null);
   const [filter, setFilter] = useState("");
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ArchiveImportResult | null>(
@@ -80,6 +82,22 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
       </div>
       {importError && <div className="error-banner">{importError}</div>}
       {importResult && <p className="muted">{importMessage(importResult)}</p>}
+      {importProgress && (
+        <div className="row" style={{ marginBottom: 10 }}>
+          <span className="muted">
+            Scanne Archiv… ({importProgress.current.toLocaleString("de-DE")}/
+            {importProgress.total.toLocaleString("de-DE")})
+          </span>
+          <div className="progress-track">
+            <div
+              className="progress-fill"
+              style={{
+                width: `${Math.round((importProgress.current / Math.max(importProgress.total, 1)) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
 
       {entries.length === 0 ? (
         <div style={{ marginTop: 8 }}>
@@ -93,44 +111,52 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
       ) : filtered.length === 0 ? (
         <p className="muted">Keine Treffer für den Filter.</p>
       ) : (
-        <table className="song-table">
-          <thead>
-            <tr>
-              <th style={{ width: 36 }} />
-              <th>Interpret</th>
-              <th>Titel</th>
-              <th>Datum</th>
-              <th style={{ width: 120 }} />
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((e) => (
-              <tr key={e.dirName}>
-                <td>
-                  {/* Negative apiIds = rekonstruierte/importierte Einträge ohne USDB-Cover */}
-                  {e.apiId > 0 ? (
-                    <CoverThumb apiId={e.apiId} />
-                  ) : (
-                    <div className="cover-thumb" />
-                  )}
-                </td>
-                <td style={{ color: "var(--green)" }}>{e.artist}</td>
-                <td>{e.title}</td>
-                <td className="muted">{e.downloadedAt.slice(0, 10)}</td>
-                <td>
-                  <button
-                    className="btn small"
-                    type="button"
-                    onClick={() => void window.ultrastar.openFolder(e.songDir)}
-                  >
-                    <FolderOpen size={14} aria-hidden />
-                    Ordner
-                  </button>
-                </td>
+        <>
+          <table className="song-table">
+            <thead>
+              <tr>
+                <th style={{ width: 36 }} />
+                <th>Interpret</th>
+                <th>Titel</th>
+                <th>Datum</th>
+                <th style={{ width: 120 }} />
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {filtered.slice(0, 500).map((e) => (
+                <tr key={e.dirName}>
+                  <td>
+                    {/* Negative apiIds = rekonstruierte/importierte Einträge ohne USDB-Cover */}
+                    {e.apiId > 0 ? (
+                      <CoverThumb apiId={e.apiId} />
+                    ) : (
+                      <div className="cover-thumb" />
+                    )}
+                  </td>
+                  <td style={{ color: "var(--green)" }}>{e.artist}</td>
+                  <td>{e.title}</td>
+                  <td className="muted">{e.downloadedAt.slice(0, 10)}</td>
+                  <td>
+                    <button
+                      className="btn small"
+                      type="button"
+                      onClick={() => void window.ultrastar.openFolder(e.songDir)}
+                    >
+                      <FolderOpen size={14} aria-hidden />
+                      Ordner
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {filtered.length > 500 && (
+            <p className="muted">
+              … und {(filtered.length - 500).toLocaleString("de-DE")} weitere —
+              nutze den Filter.
+            </p>
+          )}
+        </>
       )}
     </div>
   );

@@ -93,12 +93,15 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
       archiveImportRunning = true;
       try {
         const result = await Effect.runPromise(
-          importArchive(state.downloadDir),
+          importArchive(state.downloadDir, (p) =>
+            broadcast("event:archiveImportProgress", p),
+          ),
         );
         await reloadDownloadedEntries();
         return result;
       } finally {
         archiveImportRunning = false;
+        broadcast("event:archiveImportProgress", null);
       }
     },
 
