@@ -18,6 +18,9 @@
   "license": "MIT",
   "homepage": "https://github.com/martiinii/UltraScrap-cli",
   "trustedDependencies": ["electron"],
+  "patchedDependencies": {
+    "fstream@1.0.12": "patches/fstream@1.0.12.patch"
+  },
   "scripts": {
     "build": "bun run --cwd src build.ts",
     "start": "bun run src/index.tsx",
