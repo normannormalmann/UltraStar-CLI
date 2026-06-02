@@ -1,4 +1,5 @@
 import { rm } from "node:fs/promises";
+import { join } from "node:path";
 import { afterAll, expect, test } from "bun:test";
 import { Effect } from "effect";
 import { getCacheDir, resolveDataFilePath } from "./paths.ts";
@@ -9,8 +10,9 @@ import { loadQueue, saveQueue } from "./queue.ts";
 process.env.ULTRASTAR_APP_NAME = `ultrastar-cli-test-${process.pid}`;
 
 afterAll(async () => {
+  // Eltern-Verzeichnis (…\ultrastar-cli-test-<pid>) löschen, nicht nur den Cache-Leaf
   const dir = await Effect.runPromise(getCacheDir());
-  await rm(dir, { recursive: true, force: true });
+  await rm(join(dir, ".."), { recursive: true, force: true });
 });
 
 test("resolveDataFilePath respects ULTRASTAR_APP_NAME and file name", async () => {
