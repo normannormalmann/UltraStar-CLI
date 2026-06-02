@@ -1,9 +1,14 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { Effect } from "effect";
 import { searchSongs, type Song } from "../../core/api/usdb/search.ts";
+import { entryMetadata } from "../../core/download/importArchive.ts";
+import { parseTxtHeaders, type TxtHeaders } from "../../core/download/repairSongs.ts";
 import { downloadSong } from "../../core/download/downloadSong.ts";
 import { appendDownloadedEntry } from "../../core/storage/downloaded.ts";
 import { appendFailedDownload } from "../../core/storage/failedDownloads.ts";
 import { broadcast, reloadDownloadedEntries, state } from "./state.ts";
+import type { BulkQueueRequest } from "../shared/ipc-contract.ts";
 
 const DOWNLOAD_CONCURRENCY = 3; // wie TUI
 const COMPLETED_REMOVE_DELAY_MS = 1500;
@@ -58,6 +63,10 @@ export const downloadSongItem = async (song: Song): Promise<void> => {
       }),
     );
 
+    const headers = await readFile(join(result.songDir, "song.txt"), "utf8")
+      .then((txt) => parseTxtHeaders(txt))
+      .catch(() => ({}) as TxtHeaders);
+
     await Effect.runPromise(
       appendDownloadedEntry({
         apiId: song.apiId,
@@ -66,6 +75,7 @@ export const downloadSongItem = async (song: Song): Promise<void> => {
         dirName: result.dirName,
         songDir: result.songDir,
         downloadedAt: new Date().toISOString(),
+        ...entryMetadata(headers),
       }),
     ).catch((e) => {
       broadcast("event:error", {
@@ -142,8 +152,7 @@ let bulkFetchRunning = false;
  * seitenweise in die Queue laden. totalPages wird dynamisch nachgeführt.
  */
 export const fetchAllIntoQueue = async (
-  artist: string,
-  title: string,
+  req: BulkQueueRequest,
 ): Promise<void> => {
   if (!state.cookie || bulkFetchRunning) return;
   bulkFetchRunning = true;
@@ -156,8 +165,13 @@ export const fetchAllIntoQueue = async (
       const result = await Effect.runPromise(
         searchSongs(
           {
-            interpret: artist.trim() || undefined,
-            title: title.trim() || undefined,
+            interpret: req.artist.trim() || undefined,
+            title: req.title.trim() || undefined,
+            language: req.language,
+            genre: req.genre,
+            year: req.year,
+            order: req.order,
+            ud: req.ud,
             limit,
             start: (page - 1) * limit,
           },

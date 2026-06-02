@@ -3,6 +3,7 @@ import { app, dialog, type IpcMain, shell } from "electron";
 import { searchSongs } from "../../core/api/usdb/search.ts";
 import type { AppConfig } from "../../core/storage/config.ts";
 import type {
+  BulkQueueRequest,
   InitialState,
   InvokeChannel,
   SearchRequest,
@@ -11,7 +12,7 @@ import { scanAndRepairVideos } from "../../core/download/repairSongs.ts";
 import { importArchive } from "../../core/download/importArchive.ts";
 import { loadFailedDownloads } from "../../core/storage/failedDownloads.ts";
 import { binariesStatus, installMissingBinaries } from "./binaries.ts";
-import { getCoverDataUrl } from "./covers.ts";
+import { getCoverDataUrl, getLocalCoverDataUrl } from "./covers.ts";
 import {
   downloadSongItem,
   fetchAllIntoQueue,
@@ -49,6 +50,11 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
           {
             interpret: req.artist.trim() || undefined,
             title: req.title.trim() || undefined,
+            language: req.language,
+            genre: req.genre,
+            year: req.year,
+            order: req.order,
+            ud: req.ud,
             limit: SEARCH_PAGE_SIZE,
             start,
           },
@@ -83,7 +89,7 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
 
     "archive:import": async () => {
       if (archiveImportRunning) {
-        return { imported: 0, importedWithoutVideo: 0, skipped: 0 };
+        return { imported: 0, importedWithoutVideo: 0, skipped: 0, refreshed: 0 };
       }
       if (state.queueRunning || state.activeDownloads.length > 0 || repairRunning) {
         throw new Error(
@@ -123,12 +129,12 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
       requestQueueCancel();
     },
 
-    "queue:fetchAllPages": async (req: { artist: string; title: string }) => {
-      void fetchAllIntoQueue(req.artist, req.title);
+    "queue:fetchAllPages": async (req: BulkQueueRequest) => {
+      void fetchAllIntoQueue(req);
     },
 
     "queue:entireDatabase": async () => {
-      void fetchAllIntoQueue("", "");
+      void fetchAllIntoQueue({ artist: "", title: "" });
     },
 
     "repair:start": async () => {
@@ -168,6 +174,7 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
       await installMissingBinaries(force === true);
     },
     "covers:get": async (apiId: number) => getCoverDataUrl(apiId),
+    "covers:getLocal": async (songDir: string) => getLocalCoverDataUrl(songDir),
   };
 
 export const registerIpcHandlers = (ipcMain: IpcMain): void => {

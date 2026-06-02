@@ -95,3 +95,36 @@ export const getCoverDataUrl = async (apiId: number): Promise<string | null> => 
   }
   return dataUrl;
 };
+
+const localMemoryCache = new Map<string, string>();
+
+/**
+ * Cover aus dem Song-Ordner (cover.jpg) als data-URL.
+ * Sicherheit: songDir muss exakt einem getrackten Eintrag entsprechen —
+ * kein beliebiger Dateizugriff aus dem Renderer.
+ */
+export const getLocalCoverDataUrl = async (
+  songDir: string,
+): Promise<string | null> => {
+  if (!state.downloaded.some((e) => e.songDir === songDir)) return null;
+
+  const cached = localMemoryCache.get(songDir);
+  if (cached) {
+    localMemoryCache.delete(songDir);
+    localMemoryCache.set(songDir, cached); // LRU-Touch
+    return cached;
+  }
+
+  try {
+    const bytes = await readFile(join(songDir, "cover.jpg"));
+    const dataUrl = `data:image/jpeg;base64,${bytes.toString("base64")}`;
+    localMemoryCache.set(songDir, dataUrl);
+    if (localMemoryCache.size > MEMORY_LIMIT_ENTRIES) {
+      const oldest = localMemoryCache.keys().next().value;
+      if (oldest !== undefined) localMemoryCache.delete(oldest);
+    }
+    return dataUrl;
+  } catch {
+    return null;
+  }
+};

@@ -39,6 +39,7 @@ const api: UltrastarApi = {
   binariesStatus: () => ipcRenderer.invoke("binaries:status"),
   binariesInstall: (force) => ipcRenderer.invoke("binaries:install", force),
   coverGet: (apiId) => ipcRenderer.invoke("covers:get", apiId),
+  coverGetLocal: (songDir) => ipcRenderer.invoke("covers:getLocal", songDir),
   openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
   on,
 };

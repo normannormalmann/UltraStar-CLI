@@ -1,4 +1,4 @@
-import type { Page, Song } from "../../core/api/usdb/search.ts";
+import type { Page, Song, SearchOrder } from "../../core/api/usdb/search.ts";
 import type {
   RepairErrorType,
   RepairProgress,
@@ -11,9 +11,20 @@ import type { AppConfig } from "../../core/storage/config.ts";
 import type { DownloadedEntry } from "../../core/storage/downloaded.ts";
 import type { FailedDownload } from "../../core/storage/failedDownloads.ts";
 
-export type { ArchiveImportResult, ArchiveImportProgress, AppConfig, DownloadedEntry, FailedDownload, Page, Song };
+export type { ArchiveImportResult, ArchiveImportProgress, AppConfig, DownloadedEntry, FailedDownload, Page, Song, SearchOrder };
 
-export type SearchRequest = { artist: string; title: string; page: number };
+export type SearchRequest = {
+  artist: string;
+  title: string;
+  page: number;
+  language?: string;
+  genre?: string;
+  year?: number;
+  order?: SearchOrder;
+  ud?: "asc" | "desc";
+};
+
+export type BulkQueueRequest = Omit<SearchRequest, "page">;
 
 export type DownloadStatus = "downloading" | "completed" | "failed";
 
@@ -87,6 +98,7 @@ export const INVOKE_CHANNELS = [
   "binaries:status",
   "binaries:install",
   "covers:get",
+  "covers:getLocal",
   "shell:openFolder",
 ] as const;
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
@@ -134,7 +146,7 @@ export type UltrastarApi = {
   queueClear: () => Promise<void>;
   queueStart: () => Promise<void>;
   queueCancel: () => Promise<void>; // stoppt nach dem aktuellen Batch
-  queueFetchAllPages: (req: { artist: string; title: string }) => Promise<void>;
+  queueFetchAllPages: (req: BulkQueueRequest) => Promise<void>;
   queueEntireDatabase: () => Promise<void>;
   repairStart: () => Promise<void>;
   settingsGet: () => Promise<AppConfig | null>;
@@ -144,6 +156,7 @@ export type UltrastarApi = {
   /** force=true lädt auch app-verwaltete Binaries neu (Update). */
   binariesInstall: (force?: boolean) => Promise<void>;
   coverGet: (apiId: number) => Promise<string | null>; // data-URL oder null
+  coverGetLocal: (songDir: string) => Promise<string | null>;
   openFolder: (path: string) => Promise<void>;
   on: <C extends EventChannel>(
     channel: C,
