@@ -10,7 +10,7 @@ const createWindow = (): BrowserWindow => {
     backgroundColor: "#1e1e2e",
     autoHideMenuBar: true,
     webPreferences: {
-      preload: join(import.meta.dirname, "../preload/index.mjs"),
+      preload: join(import.meta.dirname, "../preload/index.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false, // ESM-Preload benötigt sandbox:false
