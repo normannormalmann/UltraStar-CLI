@@ -21,6 +21,8 @@ const FFMPEG_PATH_IN_ZIP = "ffmpeg-master-latest-win64-gpl/bin/ffmpeg.exe";
 
 export const managedBinDir = (): string => join(app.getPath("userData"), "bin");
 
+let installRunning = false;
+
 /** userData/bin dem PATH voranstellen, damit Core-Spawns es finden. */
 export const prependManagedBinToPath = (): void => {
   process.env.PATH = `${managedBinDir()};${process.env.PATH ?? ""}`;
@@ -98,37 +100,43 @@ const downloadFile = async (
  * System-Installationen werden nie angefasst.
  */
 export const installMissingBinaries = async (force = false): Promise<void> => {
+  if (installRunning) return; // bereits ein Install-Lauf aktiv
   if (process.platform !== "win32") {
     throw new Error(
       "Automatic install is only supported on Windows. Please install yt-dlp and ffmpeg manually.",
     );
   }
-  const bin = managedBinDir();
-  await mkdir(bin, { recursive: true });
-  const status = await binariesStatus();
+  installRunning = true;
+  try {
+    const bin = managedBinDir();
+    await mkdir(bin, { recursive: true });
+    const status = await binariesStatus();
 
-  if (status.ytDlp === "missing" || (force && status.ytDlp === "managed")) {
-    await downloadFile(YT_DLP_URL, join(bin, "yt-dlp.exe"), "yt-dlp");
+    if (status.ytDlp === "missing" || (force && status.ytDlp === "managed")) {
+      await downloadFile(YT_DLP_URL, join(bin, "yt-dlp.exe"), "yt-dlp");
+    }
+
+    if (status.ffmpeg === "missing" || (force && status.ffmpeg === "managed")) {
+      const zipPath = join(bin, "ffmpeg.zip");
+      await downloadFile(FFMPEG_ZIP_URL, zipPath, "ffmpeg");
+      const extractDir = join(bin, "ffmpeg-extract");
+      await extractZip(zipPath, { dir: extractDir });
+      await rename(join(extractDir, FFMPEG_PATH_IN_ZIP), join(bin, "ffmpeg.exe"));
+      await rm(extractDir, { recursive: true, force: true });
+      await rm(zipPath, { force: true });
+    }
+
+    broadcast("event:binariesProgress", null);
+    prependManagedBinToPath();
+
+    // Status neu prüfen und an die UI melden
+    const after = await binariesStatus();
+    broadcast("event:binariesStatus", after);
+    state.setStatus({
+      ytDlpAvailable: after.ytDlp !== "missing",
+      ffmpegAvailable: after.ffmpeg !== "missing",
+    });
+  } finally {
+    installRunning = false;
   }
-
-  if (status.ffmpeg === "missing" || (force && status.ffmpeg === "managed")) {
-    const zipPath = join(bin, "ffmpeg.zip");
-    await downloadFile(FFMPEG_ZIP_URL, zipPath, "ffmpeg");
-    const extractDir = join(bin, "ffmpeg-extract");
-    await extractZip(zipPath, { dir: extractDir });
-    await rename(join(extractDir, FFMPEG_PATH_IN_ZIP), join(bin, "ffmpeg.exe"));
-    await rm(extractDir, { recursive: true, force: true });
-    await rm(zipPath, { force: true });
-  }
-
-  broadcast("event:binariesProgress", null);
-  prependManagedBinToPath();
-
-  // Status neu prüfen und an die UI melden
-  const after = await binariesStatus();
-  broadcast("event:binariesStatus", after);
-  state.setStatus({
-    ytDlpAvailable: after.ytDlp !== "missing",
-    ffmpegAvailable: after.ffmpeg !== "missing",
-  });
 };
