@@ -158,6 +158,9 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
           onChange={(e) => setLangFilter(e.target.value)}
         >
           <option value="">Sprache: Alle</option>
+          {langFilter && !languageOptions.some(([l]) => l === langFilter) && (
+            <option value={langFilter}>{langFilter} (0)</option>
+          )}
           {languageOptions.map(([lang, count]) => (
             <option key={lang} value={lang}>
               {lang} ({count.toLocaleString("de-DE")})
@@ -170,6 +173,9 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
           onChange={(e) => setGenreFilter(e.target.value)}
         >
           <option value="">Genre: Alle</option>
+          {genreFilter && !genreOptions.some(([g]) => g === genreFilter) && (
+            <option value={genreFilter}>{genreFilter} (0)</option>
+          )}
           {genreOptions.map(([g, count]) => (
             <option key={g} value={g}>
               {g} ({count.toLocaleString("de-DE")})
