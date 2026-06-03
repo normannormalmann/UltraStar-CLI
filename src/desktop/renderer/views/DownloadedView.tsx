@@ -1,12 +1,22 @@
 import { FolderOpen, FolderSearch } from "lucide-react";
 import type { FC } from "react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type {
   ArchiveImportResult,
   DownloadedEntry,
 } from "../../shared/ipc-contract.ts";
 import CoverThumb from "../components/CoverThumb.tsx";
 import { useIpcEvent } from "../hooks.ts";
+
+/** Mehrwertige Felder ("Japanese, German") in Einzelwerte splitten. */
+const splitValues = (raw: string | undefined): string[] => {
+  if (!raw) return ["Unbekannt"];
+  const parts = raw
+    .split(/[,;/]/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return parts.length > 0 ? parts : ["Unbekannt"];
+};
 
 const importMessage = (r: ArchiveImportResult): string => {
   const parts = [`${r.imported} Songs importiert`];
@@ -31,6 +41,9 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
   const [genreFilter, setGenreFilter] = useState("");
   const [yearFrom, setYearFrom] = useState("");
   const [yearTo, setYearTo] = useState("");
+  const [sortBy, setSortBy] = useState<"newest" | "artist" | "title" | "year">(
+    "newest",
+  );
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ArchiveImportResult | null>(
     null,
@@ -62,47 +75,71 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
     </button>
   );
 
-  const languageOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const e of entries) {
-      const key = e.language ?? "Unbekannt";
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [entries]);
+  const q = filter.trim().toLowerCase();
+  const from = yearFrom ? Number.parseInt(yearFrom, 10) : null;
+  const to = yearTo ? Number.parseInt(yearTo, 10) : null;
 
-  const genreOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const e of entries) {
-      const key = e.genre ?? "Unbekannt";
-      counts.set(key, (counts.get(key) ?? 0) + 1);
-    }
-    return [...counts.entries()].sort((a, b) => b[1] - a[1]);
-  }, [entries]);
+  const matchesText = (e: DownloadedEntry): boolean =>
+    !q ||
+    e.artist.toLowerCase().includes(q) ||
+    e.title.toLowerCase().includes(q);
+  const matchesLang = (e: DownloadedEntry): boolean =>
+    !langFilter || splitValues(e.language).includes(langFilter);
+  const matchesGenre = (e: DownloadedEntry): boolean =>
+    !genreFilter || splitValues(e.genre).includes(genreFilter);
+  const matchesYear = (e: DownloadedEntry): boolean => {
+    if (from !== null && (e.year === undefined || e.year < from)) return false;
+    if (to !== null && (e.year === undefined || e.year > to)) return false;
+    return true;
+  };
 
-  const filtered = useMemo(() => {
-    const q = filter.trim().toLowerCase();
-    const from = yearFrom ? Number.parseInt(yearFrom, 10) : null;
-    const to = yearTo ? Number.parseInt(yearTo, 10) : null;
-    const sorted = [...entries].sort((a, b) =>
-      b.downloadedAt.localeCompare(a.downloadedAt),
-    );
-    return sorted.filter((e) => {
-      if (
-        q &&
-        !e.artist.toLowerCase().includes(q) &&
-        !e.title.toLowerCase().includes(q)
-      )
-        return false;
-      if (langFilter && (e.language ?? "Unbekannt") !== langFilter)
-        return false;
-      if (genreFilter && (e.genre ?? "Unbekannt") !== genreFilter) return false;
-      if (from !== null && (e.year === undefined || e.year < from))
-        return false;
-      if (to !== null && (e.year === undefined || e.year > to)) return false;
-      return true;
+  const facetOptions = (
+    pool: DownloadedEntry[],
+    field: "language" | "genre",
+  ): Array<[string, number]> => {
+    const counts = new Map<string, number>();
+    for (const e of pool) {
+      for (const v of splitValues(e[field])) {
+        counts.set(v, (counts.get(v) ?? 0) + 1);
+      }
+    }
+    return [...counts.entries()].sort((a, b) => {
+      if (a[0] === "Unbekannt") return 1;
+      if (b[0] === "Unbekannt") return -1;
+      return a[0].localeCompare(b[0], "de");
     });
-  }, [entries, filter, langFilter, genreFilter, yearFrom, yearTo]);
+  };
+
+  const languageOptions = facetOptions(
+    entries.filter((e) => matchesText(e) && matchesGenre(e) && matchesYear(e)),
+    "language",
+  );
+  const genreOptions = facetOptions(
+    entries.filter((e) => matchesText(e) && matchesLang(e) && matchesYear(e)),
+    "genre",
+  );
+
+  const filteredBase = entries.filter(
+    (e) => matchesText(e) && matchesLang(e) && matchesGenre(e) && matchesYear(e),
+  );
+  switch (sortBy) {
+    case "artist":
+      filteredBase.sort((a, b) => a.artist.localeCompare(b.artist, "de"));
+      break;
+    case "title":
+      filteredBase.sort((a, b) => a.title.localeCompare(b.title, "de"));
+      break;
+    case "year":
+      filteredBase.sort(
+        (a, b) =>
+          (a.year ?? Number.MAX_SAFE_INTEGER) -
+          (b.year ?? Number.MAX_SAFE_INTEGER),
+      );
+      break;
+    default:
+      filteredBase.sort((a, b) => b.downloadedAt.localeCompare(a.downloadedAt));
+  }
+  const filtered = filteredBase;
 
   return (
     <div>
@@ -155,6 +192,16 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
           value={yearTo}
           onChange={(e) => setYearTo(e.target.value)}
         />
+        <select
+          className="input"
+          value={sortBy}
+          onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+        >
+          <option value="newest">Neueste zuerst</option>
+          <option value="artist">Interpret A–Z</option>
+          <option value="title">Titel A–Z</option>
+          <option value="year">Jahr aufsteigend</option>
+        </select>
         {importButton}
       </div>
       {(langFilter || genreFilter || yearFrom || yearTo || filter) && (
