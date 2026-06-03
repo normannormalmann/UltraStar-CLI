@@ -1,6 +1,7 @@
 MIT License
 
 Copyright (c) 2025 Marcin Gąsienica-Makowski
+Copyright (c) 2026 Norman Schönherr (Desktop-App "UltraStar - Dirty Little Helper" und Erweiterungen)
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
