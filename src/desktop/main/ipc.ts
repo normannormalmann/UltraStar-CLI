@@ -139,6 +139,14 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
 
     "repair:start": async () => {
       if (repairRunning) return;
+      if (archiveImportRunning) {
+        broadcast("event:error", {
+          context: "repair",
+          message:
+            "Reparatur nicht möglich, während der Archiv-Import läuft. Bitte warten und erneut versuchen.",
+        });
+        return;
+      }
       repairRunning = true;
       broadcast("event:repair", { running: true, progress: null, result: null });
       void Effect.runPromise(
