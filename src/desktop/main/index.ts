@@ -12,6 +12,10 @@ const createWindow = (): BrowserWindow => {
     minHeight: 600,
     backgroundColor: "#1e1e2e",
     autoHideMenuBar: true,
+    // Dev-Modus: Fenster-Icon aus dem Repo; gepackt liefert die Exe das Icon
+    ...(app.isPackaged
+      ? {}
+      : { icon: join(import.meta.dirname, "../../resources/icon.ico") }),
     webPreferences: {
       preload: join(import.meta.dirname, "../preload/index.js"),
       contextIsolation: true,

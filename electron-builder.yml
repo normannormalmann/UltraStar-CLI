@@ -15,8 +15,7 @@ win:
   target:
     - nsis
   signAndEditExecutable: false
+  icon: resources/icon.ico
 nsis:
   oneClick: true
   deleteAppDataOnUninstall: false
-# Hinweis: bewusst ohne eigenes Icon in v1 (Standard-Electron-Icon);
-# eigenes .ico ist als Folgeaufgabe vorgesehen.
