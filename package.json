@@ -13,10 +13,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/martiinii/UltraScrap-cli"
+    "url": "https://github.com/normannormalmann/ultrastar-dlh"
   },
   "license": "MIT",
-  "homepage": "https://github.com/martiinii/UltraScrap-cli",
+  "homepage": "https://github.com/normannormalmann/ultrastar-dlh",
   "trustedDependencies": ["electron"],
   "patchedDependencies": {
     "fstream@1.0.12": "patches/fstream@1.0.12.patch"

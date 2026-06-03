@@ -39,7 +39,7 @@ You can run this exact version of the CLI directly from GitHub using Bun. The fi
 
 ### Bun (Recommended)
 ```bash
-bunx --bun github:normannormalmann/UltraStar-CLI
+bunx --bun github:normannormalmann/ultrastar-dlh
 ```
 
 *By default, your songs will be saved under `./songs/Artist - Title/` relative to where you run the command. You can change this path within the app's Setup menu.*
@@ -53,7 +53,7 @@ Funktionen wie die CLI (Suche mit Filtern, Download, Queue, Archiv-Import,
 Reparatur) mit grafischer Oberfläche.
 
 **Download:** Neueste `UltraStar - Dirty Little Helper Setup *.exe` von den
-[GitHub Releases](https://github.com/normannormalmann/UltraStar-CLI/releases)
+[GitHub Releases](https://github.com/normannormalmann/ultrastar-dlh/releases)
 herunterladen und ausführen. yt-dlp und ffmpeg lädt die App bei Bedarf
 selbst herunter (Einstellungen → Tools).
 
@@ -118,8 +118,8 @@ This project uses Bun natively. You can still run the built CLI with Node, but d
 
 ### Setup Repository
 ```bash
-git clone https://github.com/martiinii/UltraScrap-cli.git
-cd UltraScrap-cli
+git clone https://github.com/normannormalmann/ultrastar-dlh.git
+cd ultrastar-dlh
 bun install
 ```
 
