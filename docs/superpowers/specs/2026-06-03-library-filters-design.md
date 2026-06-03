@@ -87,6 +87,12 @@ Neben dem Textfilter:
 - Alle Kriterien kombiniert per UND; Anzeige-Cap (500) und Zähler bleiben.
 - Die Import-Ergebnismeldung nennt zusätzlich `refreshed`: „… · N Einträge um Metadaten ergänzt".
 
+**Nachtrag (Nutzer-Feedback 2026-06-03):**
+- **Facetten-Zähler:** Die Optionen/Zähler eines Dropdowns berechnen sich aus den Einträgen, die alle ANDEREN aktiven Filter erfüllen (klassisches Faceting) — nicht aus der Gesamtmenge.
+- **Mehrwertige Felder:** `language`/`genre` werden für Faceting UND Matching an `,`/`;`/`/` gesplittet (getrimmt) — ein Song „Japanese, German" erscheint unter beiden Sprachen.
+- **Dropdown-Optionen alphabetisch** (de-Locale, „Unbekannt" am Ende) statt nach Häufigkeit.
+- **Listen-Sortierung:** Dropdown „Neueste zuerst" (Standard) / „Interpret A–Z" / „Titel A–Z" / „Jahr aufsteigend" (Einträge ohne Jahr am Ende).
+
 ### Lokale Cover
 
 `CoverThumb` erhält optional `songDir`; bei `apiId <= 0` und vorhandenem `songDir` wird `covers:getLocal` genutzt. DownloadedView übergibt `songDir` statt des leeren Platzhalters.
