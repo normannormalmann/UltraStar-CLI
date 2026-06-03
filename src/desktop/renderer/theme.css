@@ -45,6 +45,15 @@ html, body, #root {
   padding: 16px 10px;
   gap: 4px;
 }
+.sidebar .brand .brand-sub {
+  display: block;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--subtext);
+  text-shadow: none;
+}
 .sidebar .brand {
   font-size: 18px;
   font-weight: 700;

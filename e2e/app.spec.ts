@@ -4,7 +4,7 @@ test("app boots and shows the search view", async () => {
   const app = await electron.launch({ args: ["out/main/index.js"] });
   const window = await app.firstWindow();
 
-  await expect(window).toHaveTitle("UltraStar");
+  await expect(window).toHaveTitle("UltraStar - Dirty Little Helper");
   // Sidebar-Einträge vorhanden
   await expect(
     window.getByRole("button", { name: "Suche", exact: true }),

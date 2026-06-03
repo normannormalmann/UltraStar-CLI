@@ -30,7 +30,10 @@ export const Sidebar: FC<{
   <nav className="sidebar">
     <div className="brand">
       <Mic size={18} aria-hidden />
-      UltraStar
+      <span>
+        UltraStar
+        <span className="brand-sub">Dirty Little Helper</span>
+      </span>
     </div>
     {ITEMS.map((item) => (
       <button

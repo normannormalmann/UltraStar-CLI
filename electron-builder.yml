@@ -1,5 +1,5 @@
 appId: com.github.normannormalmann.ultrastar
-productName: UltraStar
+productName: UltraStar - Dirty Little Helper
 directories:
   output: dist
 files:

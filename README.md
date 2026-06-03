@@ -46,12 +46,13 @@ bunx --bun github:normannormalmann/UltraStar-CLI
 
 ---
 
-## Desktop App (Windows)
+## Desktop App: UltraStar - Dirty Little Helper (Windows)
 
-Die Desktop-App bietet dieselben Funktionen wie die CLI (Suche, Download,
-Queue, Reparatur) mit grafischer Oberfläche.
+Die Desktop-App **„UltraStar - Dirty Little Helper"** bietet dieselben
+Funktionen wie die CLI (Suche mit Filtern, Download, Queue, Archiv-Import,
+Reparatur) mit grafischer Oberfläche.
 
-**Download:** Neueste `UltraStar Setup *.exe` von den
+**Download:** Neueste `UltraStar - Dirty Little Helper Setup *.exe` von den
 [GitHub Releases](https://github.com/normannormalmann/UltraStar-CLI/releases)
 herunterladen und ausführen. yt-dlp und ffmpeg lädt die App bei Bedarf
 selbst herunter (Einstellungen → Tools).
