@@ -1,6 +1,8 @@
 import { FolderOpen, FolderSearch } from "lucide-react";
 import type { FC } from "react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const PAGE_SIZE = 500;
 import type {
   ArchiveImportResult,
   DownloadedEntry,
@@ -44,11 +46,31 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
   const [sortBy, setSortBy] = useState<"newest" | "artist" | "title" | "year">(
     "newest",
   );
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState<ArchiveImportResult | null>(
     null,
   );
   const [importError, setImportError] = useState<string | null>(null);
+
+  // Bei Filter-/Sortierwechsel wieder von vorn rendern
+  // biome-ignore lint/correctness/useExhaustiveDependencies: bewusster Reset bei jeder Kriterienänderung
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filter, langFilter, genreFilter, yearFrom, yearTo, sortBy]);
+
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const observer = new IntersectionObserver((entries_) => {
+      if (entries_.some((e) => e.isIntersecting)) {
+        setVisibleCount((c) => c + PAGE_SIZE);
+      }
+    });
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, []);
 
   const runImport = async (): Promise<void> => {
     setImporting(true);
@@ -258,7 +280,7 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
               </tr>
             </thead>
             <tbody>
-              {filtered.slice(0, 500).map((e) => (
+              {filtered.slice(0, visibleCount).map((e) => (
                 <tr key={e.dirName}>
                   <td>
                     <CoverThumb apiId={e.apiId} songDir={e.songDir} />
@@ -280,14 +302,15 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
               ))}
             </tbody>
           </table>
-          {filtered.length > 500 && (
+          {filtered.length > visibleCount && (
             <p className="muted">
-              … und {(filtered.length - 500).toLocaleString("de-DE")} weitere —
-              nutze den Filter.
+              {Math.min(visibleCount, filtered.length).toLocaleString("de-DE")} von{" "}
+              {filtered.length.toLocaleString("de-DE")} angezeigt — weiterscrollen lädt mehr.
             </p>
           )}
         </>
       )}
+      <div ref={sentinelRef} />
     </div>
   );
 };
