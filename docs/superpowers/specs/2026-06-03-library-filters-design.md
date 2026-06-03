@@ -92,6 +92,7 @@ Neben dem Textfilter:
 - **Mehrwertige Felder:** `language`/`genre` werden für Faceting UND Matching an `,`/`;`/`/` gesplittet (getrimmt) — ein Song „Japanese, German" erscheint unter beiden Sprachen.
 - **Dropdown-Optionen alphabetisch** (de-Locale, „Unbekannt" am Ende) statt nach Häufigkeit.
 - **Listen-Sortierung:** Dropdown „Neueste zuerst" (Standard) / „Interpret A–Z" / „Titel A–Z" / „Jahr aufsteigend" (Einträge ohne Jahr am Ende).
+- **Infinite Scroll statt 500er-Cap:** Beim Scrollen ans Listenende werden jeweils 500 weitere Zeilen nachgeladen (IntersectionObserver-Sentinel). Der sichtbare Umfang springt bei Änderung von Filtern/Sortierung auf 500 zurück; der „nutze den Filter"-Hinweis entfällt.
 
 ### Lokale Cover
 
