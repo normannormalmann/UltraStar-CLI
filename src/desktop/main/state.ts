@@ -2,7 +2,8 @@ import { stat } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { BrowserWindow } from "electron";
-import { sanitizeForPath } from "../../core/download/naming.ts";
+import { type FolderLayout, sanitizeForPath } from "../../core/download/naming.ts";
+import type { VideoQuality } from "../../core/api/youtube/download.ts";
 import {
   checkFfmpegAvailable,
   checkYtDlpAvailable,
@@ -57,6 +58,18 @@ class AppState {
   }
   get browser(): string {
     return this.config?.browser ?? "edge";
+  }
+  get folderLayout(): FolderLayout {
+    const v = this.config?.folderLayout;
+    return v === "artist" || v === "letter" ? v : "flat";
+  }
+  get downloadConcurrency(): number {
+    const v = this.config?.downloadConcurrency;
+    return typeof v === "number" && v >= 1 && v <= 5 ? Math.floor(v) : 3;
+  }
+  get videoQuality(): VideoQuality {
+    const v = this.config?.videoQuality;
+    return v === "720" || v === "best" ? v : "1080";
   }
   get downloadedApiIds(): Set<number> {
     return new Set(this.downloaded.map((e) => e.apiId));

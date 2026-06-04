@@ -1,6 +1,6 @@
 import type { FC } from "react";
 import { useEffect, useState } from "react";
-import { Check, Download, RefreshCw } from "lucide-react";
+import { Check, Download, RefreshCw, Trash2 } from "lucide-react";
 import type {
   AppConfig,
   BinariesStatus,
@@ -34,10 +34,21 @@ export const SettingsView: FC<{
   const [lastfmApiKey, setLastfmApiKey] = useState(
     initialConfig?.lastfmApiKey ?? "",
   );
+  const [folderLayout, setFolderLayout] = useState(
+    initialConfig?.folderLayout ?? "flat",
+  );
+  const [downloadConcurrency, setDownloadConcurrency] = useState(
+    initialConfig?.downloadConcurrency ?? 3,
+  );
+  const [videoQuality, setVideoQuality] = useState(
+    initialConfig?.videoQuality ?? "1080",
+  );
   const [saved, setSaved] = useState(false);
   const [binaries, setBinaries] = useState<BinariesStatus | null>(null);
   const [installing, setInstalling] = useState(false);
   const [installError, setInstallError] = useState<string | null>(null);
+  const [clearingCache, setClearingCache] = useState(false);
+  const [cacheMessage, setCacheMessage] = useState<string | null>(null);
 
   useEffect(() => {
     void window.ultrastar.binariesStatus().then(setBinaries);
@@ -58,6 +69,9 @@ export const SettingsView: FC<{
       browser,
       genreProvider,
       lastfmApiKey: lastfmApiKey || undefined,
+      folderLayout,
+      downloadConcurrency,
+      videoQuality,
     });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -118,6 +132,54 @@ export const SettingsView: FC<{
         ))}
       </select>
 
+      <h3>Downloads</h3>
+      <label className="muted" htmlFor="folder-layout">Ordnerstruktur neuer Downloads</label>
+      <select
+        id="folder-layout"
+        className="input"
+        style={{ width: 360, display: "block", marginBottom: 4 }}
+        value={folderLayout}
+        onChange={(e) => setFolderLayout(e.target.value)}
+      >
+        <option value="flat">Artist - Titel (flach)</option>
+        <option value="artist">Artist / Artist - Titel</option>
+        <option value="letter">A / Artist - Titel (Anfangsbuchstabe)</option>
+      </select>
+      <p className="muted" style={{ marginTop: 0 }}>
+        Beispiel: {downloadDir || "…"}\
+        {folderLayout === "artist"
+          ? "ABBA\\ABBA_-_Waterloo"
+          : folderLayout === "letter"
+            ? "A\\ABBA_-_Waterloo"
+            : "ABBA_-_Waterloo"}
+      </p>
+      <div className="row" style={{ marginBottom: 18 }}>
+        <label className="row-inline muted" style={{ gap: 6 }}>
+          Parallele Downloads
+          <select
+            className="input"
+            value={String(downloadConcurrency)}
+            onChange={(e) => setDownloadConcurrency(Number(e.target.value))}
+          >
+            {[1, 2, 3, 4, 5].map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </label>
+        <label className="row-inline muted" style={{ gap: 6 }}>
+          Video-Qualität
+          <select
+            className="input"
+            value={videoQuality}
+            onChange={(e) => setVideoQuality(e.target.value)}
+          >
+            <option value="720">max. 720p</option>
+            <option value="1080">max. 1080p</option>
+            <option value="best">Beste verfügbare</option>
+          </select>
+        </label>
+      </div>
+
       <h3>Genre-Quelle</h3>
       <p className="muted" style={{ maxWidth: 560 }}>
         Quelle für das Nachtragen fehlender Genres (Bibliothek → „Genres
@@ -163,6 +225,26 @@ export const SettingsView: FC<{
             yt-dlp: <strong>{sourceLabel(binaries.ytDlp)}</strong> · ffmpeg:{" "}
             <strong>{sourceLabel(binaries.ffmpeg)}</strong>
           </p>
+          <div className="row" style={{ marginBottom: 8 }}>
+            <button
+              className="btn"
+              type="button"
+              disabled={clearingCache}
+              onClick={() => {
+                setClearingCache(true);
+                void window.ultrastar
+                  .coversClearCache()
+                  .then((r) =>
+                    setCacheMessage(`${r.deletedFiles} Cover-Dateien gelöscht`),
+                  )
+                  .finally(() => setClearingCache(false));
+              }}
+            >
+              <Trash2 size={14} aria-hidden />
+              Cover-Cache leeren
+            </button>
+            {cacheMessage && <span className="muted">{cacheMessage}</span>}
+          </div>
           <div className="row">
             {anythingMissing && (
               <button

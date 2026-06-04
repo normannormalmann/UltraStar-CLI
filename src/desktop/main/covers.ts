@@ -96,6 +96,23 @@ export const getCoverDataUrl = async (apiId: number): Promise<string | null> => 
   return dataUrl;
 };
 
+/** Disk- und Memory-Cover-Caches leeren. Gibt die Zahl gelöschter Dateien zurück. */
+export const clearCoverCaches = async (): Promise<{ deletedFiles: number }> => {
+  memoryCache.clear();
+  localMemoryCache.clear();
+  let deletedFiles = 0;
+  try {
+    const dir = coversDir();
+    for (const name of await readdir(dir)) {
+      await rm(join(dir, name), { force: true });
+      deletedFiles++;
+    }
+  } catch {
+    // Verzeichnis existiert nicht → 0
+  }
+  return { deletedFiles };
+};
+
 const localMemoryCache = new Map<string, string>();
 
 /**

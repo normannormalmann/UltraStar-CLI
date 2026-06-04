@@ -41,6 +41,7 @@ const api: UltrastarApi = {
   binariesInstall: (force) => ipcRenderer.invoke("binaries:install", force),
   coverGet: (apiId) => ipcRenderer.invoke("covers:get", apiId),
   coverGetLocal: (songDir) => ipcRenderer.invoke("covers:getLocal", songDir),
+  coversClearCache: () => ipcRenderer.invoke("covers:clearCache"),
   openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
   genresEnrich: () => ipcRenderer.invoke("genres:enrich"),
   genresCancel: () => ipcRenderer.invoke("genres:cancel"),

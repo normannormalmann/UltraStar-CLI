@@ -18,7 +18,7 @@ import type { GenreProvider } from "../../core/api/genres/provider.ts";
 import type { GenreProviderId } from "../../core/api/genres/provider.ts";
 import { loadFailedDownloads } from "../../core/storage/failedDownloads.ts";
 import { binariesStatus, installMissingBinaries } from "./binaries.ts";
-import { getCoverDataUrl, getLocalCoverDataUrl } from "./covers.ts";
+import { clearCoverCaches, getCoverDataUrl, getLocalCoverDataUrl } from "./covers.ts";
 import {
   downloadSongItem,
   fetchAllIntoQueue,
@@ -175,6 +175,7 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
       void Effect.runPromise(
         scanAndRepairVideos(state.downloadDir, state.cookie, state.browser, (p) =>
           broadcast("event:repair", { running: true, progress: p, result: null }),
+          state.videoQuality,
         ),
       )
         .then(async (result) => {
@@ -209,6 +210,7 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
     },
     "covers:get": async (apiId: number) => getCoverDataUrl(apiId),
     "covers:getLocal": async (songDir: string) => getLocalCoverDataUrl(songDir),
+    "covers:clearCache": async () => clearCoverCaches(),
 
     "genres:enrich": async () => {
       if (genreEnrichRunning) {

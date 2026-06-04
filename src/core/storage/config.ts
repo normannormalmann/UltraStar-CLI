@@ -7,6 +7,9 @@ export type AppConfig = {
   browser: string;
   genreProvider?: string;
   lastfmApiKey?: string;
+  folderLayout?: string;
+  downloadConcurrency?: number;
+  videoQuality?: string;
 };
 const FILE_NAME = "config.json";
 

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { Effect } from "effect";
 import type { YoutubeLink } from "../api/usdb/youtube.ts";
 import { getYoutubeLinksById } from "../api/usdb/youtube.ts";
-import { downloadYoutubeVideoWithProgress } from "../api/youtube/download.ts";
+import { downloadYoutubeVideoWithProgress, type VideoQuality } from "../api/youtube/download.ts";
 import type { YoutubeVideo } from "../api/youtube/search.ts";
 import { searchYoutubeVideos } from "../api/youtube/search.ts";
 import type { DownloadedEntry } from "../storage/downloaded.ts";
@@ -121,6 +121,7 @@ const repairSingleSong = (
   apiId: number | null,
   cookiesBrowser?: string,
   onProgress?: (p: number) => void,
+  videoQuality?: VideoQuality,
 ): Effect.Effect<boolean, Error> =>
   Effect.gen(function* () {
     // Read artist/title from song.txt for fallback search
@@ -175,6 +176,7 @@ const repairSingleSong = (
       videoPath,
       (p) => onProgress?.(p.percent ?? 0),
       cookiesBrowser,
+      videoQuality,
     );
 
     // Verify file was written
@@ -222,6 +224,7 @@ export const scanAndRepairVideos = (
   cookie: string,
   cookiesBrowser?: string,
   onProgress?: (p: RepairProgress) => void,
+  videoQuality?: VideoQuality,
 ): Effect.Effect<RepairResult, Error> =>
   Effect.gen(function* () {
     const folders = yield* Effect.tryPromise({
@@ -381,6 +384,7 @@ export const scanAndRepairVideos = (
                 videoProgress,
               });
             },
+            videoQuality,
           ),
           (error) => {
             // Categorize the error for better user feedback

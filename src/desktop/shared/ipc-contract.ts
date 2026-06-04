@@ -105,6 +105,7 @@ export const INVOKE_CHANNELS = [
   "binaries:install",
   "covers:get",
   "covers:getLocal",
+  "covers:clearCache",
   "shell:openFolder",
   "genres:enrich",
   "genres:cancel",
@@ -170,6 +171,7 @@ export type UltrastarApi = {
   binariesInstall: (force?: boolean) => Promise<void>;
   coverGet: (apiId: number) => Promise<string | null>; // data-URL oder null
   coverGetLocal: (songDir: string) => Promise<string | null>;
+  coversClearCache: () => Promise<{ deletedFiles: number }>;
   openFolder: (path: string) => Promise<void>;
   genresEnrich: () => Promise<GenreEnrichResult>;
   genresCancel: () => Promise<void>;

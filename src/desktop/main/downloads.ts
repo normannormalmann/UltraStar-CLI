@@ -10,7 +10,6 @@ import { appendFailedDownload } from "../../core/storage/failedDownloads.ts";
 import { broadcast, state } from "./state.ts";
 import type { BulkQueueRequest } from "../shared/ipc-contract.ts";
 
-const DOWNLOAD_CONCURRENCY = 3; // wie TUI
 const COMPLETED_REMOVE_DELAY_MS = 1500;
 const FAILED_REMOVE_DELAY_MS = 8000;
 const BULK_FETCH_YIELD_MS = 10;
@@ -53,6 +52,8 @@ export const downloadSongItem = async (song: Song): Promise<void> => {
         cookie: state.cookie,
         baseDir: state.downloadDir,
         cookiesBrowser: state.browser,
+        folderLayout: state.folderLayout,
+        videoQuality: state.videoQuality,
         onProgress: (p) => state.patchActiveDownload(song.apiId, { progress: p }),
         onWarning: (warnings) => {
           broadcast("event:error", {
@@ -128,10 +129,11 @@ export const processQueue = async (): Promise<void> => {
   state.setQueueRunning(true);
   queueCancelRequested = false;
   try {
+    const concurrency = state.downloadConcurrency;
     let isDownloaded = state.makeIsDownloadedSong();
     let current = state.queue.filter((s) => !isDownloaded(s));
     while (current.length > 0 && !queueCancelRequested) {
-      const batch = current.slice(0, DOWNLOAD_CONCURRENCY);
+      const batch = current.slice(0, concurrency);
       await Promise.all(batch.map((song) => downloadSongItem(song)));
       state.setQueue(
         state.queue.filter((s) => !batch.some((b) => b.apiId === s.apiId)),
