@@ -1,4 +1,4 @@
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
 import type { YoutubeLink } from "../api/usdb/youtube.ts";
@@ -35,6 +35,14 @@ export type RepairResult = {
   failed: string[];
   errors: Map<string, { type: RepairErrorType; message: string }>;
 };
+
+export function applyVideoGap(txt: string, gap: string): string {
+  const line = `#VIDEOGAP:${gap}`;
+  if (/^#VIDEOGAP:.*$/m.test(txt)) {
+    return txt.replace(/^#VIDEOGAP:.*$/m, line);
+  }
+  return txt.replace(/^(#[^\n]*\n)/, `$1${line}\n`);
+}
 
 /** Stable negative hash so songs without a USDB apiId get a unique tracking id. */
 export function stableHash(s: string): number {
@@ -123,6 +131,7 @@ const repairSingleSong = (
 
     // Step 1: Try USDB API if we have an apiId
     let videoLink: string | null = null;
+    let videoGap: string | undefined;
     if (apiId !== null && apiId > 0) {
       const links = yield* Effect.catchAll(
         getYoutubeLinksById(apiId, cookie),
@@ -131,6 +140,7 @@ const repairSingleSong = (
       if (links.length > 0) {
         videoLink = links[0]?.link ?? null;
       }
+      videoGap = links[0]?.videoGap;
     }
 
     // Step 2: Fall back to YouTube search
@@ -172,6 +182,18 @@ const repairSingleSong = (
       catch: (e) => (e instanceof Error ? e : new Error("verify failed")),
     }).pipe(Effect.catchAll(() => Effect.succeed(false)));
     if (!fileOk) return false;
+
+    // Apply videoGap from USDB comment (best-effort, does not fail repair)
+    if (videoGap) {
+      yield* Effect.tryPromise({
+        try: async () => {
+          const txtPath = join(songDir, "song.txt");
+          const txt = await readFile(txtPath, "utf8");
+          await writeFile(txtPath, applyVideoGap(txt, videoGap), "utf8");
+        },
+        catch: (e) => (e instanceof Error ? e : new Error("videogap patch failed")),
+      }).pipe(Effect.catchAll(() => Effect.succeed(undefined)));
+    }
 
     // Update tracking – always track, use stable hash when no USDB apiId
     const trackingApiId =

@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { parseTxtHeaders } from "./repairSongs.ts";
+import { applyVideoGap, parseTxtHeaders } from "./repairSongs.ts";
 
 test("parses ARTIST and TITLE headers", () => {
   const content = "#ARTIST:ABBA\n#TITLE:Waterloo\n#MP3:song.mp3\n: 0 4 0 Wa";
@@ -56,4 +56,18 @@ test("parses extended metadata headers", () => {
 test("ignores invalid numbers and stops at the note block", () => {
   const content = "#ARTIST:X\n#YEAR:unknown\n: 0 4 0 La\n#GENRE:Pop";
   expect(parseTxtHeaders(content)).toEqual({ artist: "X" });
+});
+
+test("applyVideoGap replaces existing #VIDEOGAP line", () => {
+  const txt = "#ARTIST:X\n#VIDEOGAP:10.0\n#BPM:120\n: 0 4 0 La\n";
+  expect(applyVideoGap(txt, "37.5")).toBe(
+    "#ARTIST:X\n#VIDEOGAP:37.5\n#BPM:120\n: 0 4 0 La\n",
+  );
+});
+
+test("applyVideoGap inserts after first header when absent", () => {
+  const txt = "#ARTIST:X\n#TITLE:Y\n#BPM:120\n: 0 4 0 La\n";
+  expect(applyVideoGap(txt, "37.5")).toBe(
+    "#ARTIST:X\n#VIDEOGAP:37.5\n#TITLE:Y\n#BPM:120\n: 0 4 0 La\n",
+  );
 });
