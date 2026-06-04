@@ -28,11 +28,13 @@ export const saveConfig = (
   config: AppConfig,
 ): Effect.Effect<AppConfig, Error> =>
   Effect.gen(function* () {
+    const existing = yield* loadConfig;
+    const merged: AppConfig = { ...existing, ...config } as AppConfig;
     const path = yield* resolveDataFilePath(FILE_NAME);
     yield* Effect.tryPromise({
-      try: async () => writeFile(path, JSON.stringify(config, null, 2), "utf8"),
+      try: async () => writeFile(path, JSON.stringify(merged, null, 2), "utf8"),
       catch: (e) =>
         e instanceof Error ? e : new Error("Failed to write config"),
     });
-    return config;
+    return merged;
   });
