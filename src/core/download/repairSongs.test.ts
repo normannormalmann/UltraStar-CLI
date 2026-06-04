@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { applyVideoGap, parseTxtHeaders } from "./repairSongs.ts";
+import { applyHeader, applyVideoGap, parseTxtHeaders } from "./repairSongs.ts";
 
 test("parses ARTIST and TITLE headers", () => {
   const content = "#ARTIST:ABBA\n#TITLE:Waterloo\n#MP3:song.mp3\n: 0 4 0 Wa";
@@ -76,4 +76,15 @@ test("applyVideoGap preserves CRLF line endings on insert", () => {
   const txt = "#ARTIST:X\r\n#TITLE:Y\r\n: 0 4 0 La\r\n";
   const out = applyVideoGap(txt, "37.5");
   expect(out).toBe("#ARTIST:X\r\n#VIDEOGAP:37.5\r\n#TITLE:Y\r\n: 0 4 0 La\r\n");
+});
+
+test("applyHeader replaces and inserts arbitrary headers", () => {
+  const txt = "#ARTIST:X\n#GENRE:Old\n: 0 4 0 La\n";
+  expect(applyHeader(txt, "GENRE", "Pop")).toBe(
+    "#ARTIST:X\n#GENRE:Pop\n: 0 4 0 La\n",
+  );
+  const noGenre = "#ARTIST:X\r\n: 0 4 0 La\r\n";
+  expect(applyHeader(noGenre, "GENRE", "Pop")).toBe(
+    "#ARTIST:X\r\n#GENRE:Pop\r\n: 0 4 0 La\r\n",
+  );
 });

@@ -36,14 +36,17 @@ export type RepairResult = {
   errors: Map<string, { type: RepairErrorType; message: string }>;
 };
 
-export function applyVideoGap(txt: string, gap: string): string {
-  const line = `#VIDEOGAP:${gap}`;
-  if (/^#VIDEOGAP:.*$/m.test(txt)) {
-    return txt.replace(/^#VIDEOGAP:.*$/m, line);
-  }
+/** Ersetzt einen Header (oder fügt ihn nach der ersten Header-Zeile ein); EOL-erhaltend. */
+export const applyHeader = (txt: string, key: string, value: string): string => {
+  const line = `#${key.toUpperCase()}:${value}`;
+  const pattern = new RegExp(`^#${key.toUpperCase()}:.*$`, "m");
+  if (pattern.test(txt)) return txt.replace(pattern, line);
   const eol = txt.includes("\r\n") ? "\r\n" : "\n";
   return txt.replace(/^(#[^\n]*\n)/, `$1${line}${eol}`);
-}
+};
+
+export const applyVideoGap = (txt: string, gap: string): string =>
+  applyHeader(txt, "VIDEOGAP", gap);
 
 /** Stable negative hash so songs without a USDB apiId get a unique tracking id. */
 export function stableHash(s: string): number {
