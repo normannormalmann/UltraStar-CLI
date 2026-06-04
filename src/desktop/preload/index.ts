@@ -42,6 +42,8 @@ const api: UltrastarApi = {
   coverGet: (apiId) => ipcRenderer.invoke("covers:get", apiId),
   coverGetLocal: (songDir) => ipcRenderer.invoke("covers:getLocal", songDir),
   openFolder: (path) => ipcRenderer.invoke("shell:openFolder", path),
+  genresEnrich: () => ipcRenderer.invoke("genres:enrich"),
+  genresCancel: () => ipcRenderer.invoke("genres:cancel"),
   on,
 };
 

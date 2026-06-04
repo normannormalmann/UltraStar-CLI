@@ -2,7 +2,12 @@ import { readFile, writeFile } from "node:fs/promises";
 import { Effect } from "effect";
 import { resolveDataFilePath } from "./paths.ts";
 
-export type AppConfig = { downloadDir: string; browser: string };
+export type AppConfig = {
+  downloadDir: string;
+  browser: string;
+  genreProvider?: string;
+  lastfmApiKey?: string;
+};
 const FILE_NAME = "config.json";
 
 export const loadConfig: Effect.Effect<AppConfig | null, Error> = Effect.gen(

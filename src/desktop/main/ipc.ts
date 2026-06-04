@@ -10,6 +10,12 @@ import type {
 } from "../shared/ipc-contract.ts";
 import { scanAndRepairVideos } from "../../core/download/repairSongs.ts";
 import { importArchive } from "../../core/download/importArchive.ts";
+import { enrichGenres } from "../../core/download/enrichGenres.ts";
+import { deezerProvider } from "../../core/api/genres/deezer.ts";
+import { makeLastfmProvider } from "../../core/api/genres/lastfm.ts";
+import { musicbrainzProvider } from "../../core/api/genres/musicbrainz.ts";
+import type { GenreProvider } from "../../core/api/genres/provider.ts";
+import type { GenreProviderId } from "../../core/api/genres/provider.ts";
 import { loadFailedDownloads } from "../../core/storage/failedDownloads.ts";
 import { binariesStatus, installMissingBinaries } from "./binaries.ts";
 import { getCoverDataUrl, getLocalCoverDataUrl } from "./covers.ts";
@@ -26,6 +32,8 @@ export const SEARCH_PAGE_SIZE = 20;
 
 let repairRunning = false;
 let archiveImportRunning = false;
+let genreEnrichRunning = false;
+let genreEnrichCancel = false;
 
 /**
  * Alle Invoke-Handler. Der Typ erzwingt, dass GENAU die Kanäle aus dem
@@ -103,9 +111,9 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
       if (archiveImportRunning) {
         return { imported: 0, importedWithoutVideo: 0, skipped: 0, refreshed: 0 };
       }
-      if (state.queueRunning || state.activeDownloads.length > 0 || repairRunning) {
+      if (state.queueRunning || state.activeDownloads.length > 0 || repairRunning || genreEnrichRunning) {
         throw new Error(
-          "Import nicht möglich, während Downloads oder eine Reparatur laufen. Bitte warten und erneut versuchen.",
+          "Import nicht möglich, während Downloads, eine Reparatur oder Genre-Anreicherung laufen. Bitte warten und erneut versuchen.",
         );
       }
       archiveImportRunning = true;
@@ -154,11 +162,11 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
 
     "repair:start": async () => {
       if (repairRunning) return;
-      if (archiveImportRunning) {
+      if (archiveImportRunning || genreEnrichRunning) {
         broadcast("event:error", {
           context: "repair",
           message:
-            "Reparatur nicht möglich, während der Archiv-Import läuft. Bitte warten und erneut versuchen.",
+            "Reparatur nicht möglich, während der Archiv-Import oder Genre-Anreicherung läuft. Bitte warten und erneut versuchen.",
         });
         return;
       }
@@ -201,6 +209,58 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
     },
     "covers:get": async (apiId: number) => getCoverDataUrl(apiId),
     "covers:getLocal": async (songDir: string) => getLocalCoverDataUrl(songDir),
+
+    "genres:enrich": async () => {
+      if (genreEnrichRunning) {
+        throw new Error("Genre-Anreicherung läuft bereits.");
+      }
+      if (
+        state.queueRunning ||
+        state.activeDownloads.length > 0 ||
+        repairRunning ||
+        archiveImportRunning
+      ) {
+        throw new Error(
+          "Anreicherung nicht möglich, während Downloads, Import oder Reparatur laufen.",
+        );
+      }
+      const providerId = (state.config?.genreProvider ?? "deezer") as GenreProviderId;
+      let provider: GenreProvider;
+      if (providerId === "lastfm") {
+        const key = state.config?.lastfmApiKey?.trim();
+        if (!key) {
+          throw new Error(
+            "Last.fm benötigt einen API-Key (Einstellungen → Genre-Quelle).",
+          );
+        }
+        provider = makeLastfmProvider(key);
+      } else if (providerId === "musicbrainz") {
+        provider = musicbrainzProvider;
+      } else {
+        provider = deezerProvider;
+      }
+
+      genreEnrichRunning = true;
+      genreEnrichCancel = false;
+      try {
+        const result = await Effect.runPromise(
+          enrichGenres(provider.lookup, {
+            minDelayMs: provider.minDelayMs,
+            onProgress: (p) => broadcast("event:genreEnrichProgress", p),
+            shouldCancel: () => genreEnrichCancel,
+          }),
+        );
+        await reloadDownloadedEntries();
+        return result;
+      } finally {
+        genreEnrichRunning = false;
+        broadcast("event:genreEnrichProgress", null);
+      }
+    },
+
+    "genres:cancel": async () => {
+      genreEnrichCancel = true;
+    },
   };
 
 export const registerIpcHandlers = (ipcMain: IpcMain): void => {

@@ -7,11 +7,14 @@ import type {
   ImportResult as ArchiveImportResult,
   ImportProgress as ArchiveImportProgress,
 } from "../../core/download/importArchive.ts";
+import type { EnrichResult as GenreEnrichResult } from "../../core/download/enrichGenres.ts";
+import type { GenreProviderId } from "../../core/api/genres/provider.ts";
 import type { AppConfig } from "../../core/storage/config.ts";
 import type { DownloadedEntry } from "../../core/storage/downloaded.ts";
 import type { FailedDownload } from "../../core/storage/failedDownloads.ts";
 
 export type { ArchiveImportResult, ArchiveImportProgress, AppConfig, DownloadedEntry, FailedDownload, Page, Song, SearchOrder };
+export type { GenreEnrichResult, GenreProviderId };
 
 export type SearchRequest = {
   artist: string;
@@ -103,6 +106,8 @@ export const INVOKE_CHANNELS = [
   "covers:get",
   "covers:getLocal",
   "shell:openFolder",
+  "genres:enrich",
+  "genres:cancel",
 ] as const;
 export type InvokeChannel = (typeof INVOKE_CHANNELS)[number];
 
@@ -120,6 +125,7 @@ export const EVENT_CHANNELS = [
   "event:binariesProgress",
   "event:binariesStatus",
   "event:error",
+  "event:genreEnrichProgress",
 ] as const;
 export type EventChannel = (typeof EVENT_CHANNELS)[number];
 
@@ -137,6 +143,7 @@ export type EventPayloads = {
   "event:binariesProgress": BinariesProgress;
   "event:binariesStatus": BinariesStatus;
   "event:error": AppError;
+  "event:genreEnrichProgress": { current: number; total: number; enriched: number } | null;
 };
 
 /** Von preload im Renderer als window.ultrastar bereitgestellt. */
@@ -164,6 +171,8 @@ export type UltrastarApi = {
   coverGet: (apiId: number) => Promise<string | null>; // data-URL oder null
   coverGetLocal: (songDir: string) => Promise<string | null>;
   openFolder: (path: string) => Promise<void>;
+  genresEnrich: () => Promise<GenreEnrichResult>;
+  genresCancel: () => Promise<void>;
   on: <C extends EventChannel>(
     channel: C,
     listener: (payload: EventPayloads[C]) => void,

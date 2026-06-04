@@ -28,6 +28,12 @@ export const SettingsView: FC<{
     initialConfig?.downloadDir ?? "",
   );
   const [browser, setBrowser] = useState(initialConfig?.browser ?? "edge");
+  const [genreProvider, setGenreProvider] = useState(
+    initialConfig?.genreProvider ?? "deezer",
+  );
+  const [lastfmApiKey, setLastfmApiKey] = useState(
+    initialConfig?.lastfmApiKey ?? "",
+  );
   const [saved, setSaved] = useState(false);
   const [binaries, setBinaries] = useState<BinariesStatus | null>(null);
   const [installing, setInstalling] = useState(false);
@@ -47,7 +53,12 @@ export const SettingsView: FC<{
   };
 
   const save = async (): Promise<void> => {
-    await window.ultrastar.settingsSave({ downloadDir, browser });
+    await window.ultrastar.settingsSave({
+      downloadDir,
+      browser,
+      genreProvider,
+      lastfmApiKey: lastfmApiKey || undefined,
+    });
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -106,6 +117,31 @@ export const SettingsView: FC<{
           </option>
         ))}
       </select>
+
+      <h3>Genre-Quelle</h3>
+      <p className="muted" style={{ maxWidth: 560 }}>
+        Quelle für das Nachtragen fehlender Genres (Bibliothek → „Genres
+        nachtragen"). Deezer braucht keinen Key.
+      </p>
+      <select
+        className="input"
+        style={{ width: 240, marginBottom: 8 }}
+        value={genreProvider}
+        onChange={(e) => setGenreProvider(e.target.value)}
+      >
+        <option value="deezer">Deezer (empfohlen)</option>
+        <option value="lastfm">Last.fm (API-Key nötig)</option>
+        <option value="musicbrainz">MusicBrainz (langsam, 1/s)</option>
+      </select>
+      {genreProvider === "lastfm" && (
+        <input
+          className="input"
+          style={{ width: 360, display: "block", marginBottom: 8 }}
+          placeholder="Last.fm API-Key"
+          value={lastfmApiKey}
+          onChange={(e) => setLastfmApiKey(e.target.value)}
+        />
+      )}
 
       <div className="row" style={{ marginBottom: 28 }}>
         <button className="btn primary" type="button" onClick={() => void save()}>

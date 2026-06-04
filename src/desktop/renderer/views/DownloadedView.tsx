@@ -1,4 +1,4 @@
-import { FolderOpen, FolderSearch, RefreshCw } from "lucide-react";
+import { FolderOpen, FolderSearch, RefreshCw, Tags } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -6,6 +6,7 @@ const PAGE_SIZE = 500;
 import type {
   ArchiveImportResult,
   DownloadedEntry,
+  GenreEnrichResult,
 } from "../../shared/ipc-contract.ts";
 import CoverThumb from "../components/CoverThumb.tsx";
 import { useIpcEvent } from "../hooks.ts";
@@ -39,6 +40,7 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
 }) => {
   const importProgress = useIpcEvent("event:archiveImportProgress", null);
   const refreshProgress = useIpcEvent("event:libraryRefreshProgress", null);
+  const genreEnrichProgress = useIpcEvent("event:genreEnrichProgress", null);
   const [filter, setFilter] = useState("");
   const [langFilter, setLangFilter] = useState("");
   const [genreFilter, setGenreFilter] = useState("");
@@ -51,10 +53,12 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [importing, setImporting] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [enriching, setEnriching] = useState(false);
   const [importResult, setImportResult] = useState<ArchiveImportResult | null>(
     null,
   );
   const [importError, setImportError] = useState<string | null>(null);
+  const [enrichResult, setEnrichResult] = useState<GenreEnrichResult | null>(null);
 
   // Bei Filter-/Sortierwechsel wieder von vorn rendern
   // biome-ignore lint/correctness/useExhaustiveDependencies: bewusster Reset bei jeder Kriterienänderung
@@ -84,6 +88,19 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
       setImportError(e instanceof Error ? e.message : String(e));
     } finally {
       setImporting(false);
+    }
+  };
+
+  const runEnrich = async (): Promise<void> => {
+    setEnriching(true);
+    setEnrichResult(null);
+    setImportError(null);
+    try {
+      setEnrichResult(await window.ultrastar.genresEnrich());
+    } catch (e) {
+      setImportError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setEnriching(false);
     }
   };
 
@@ -249,6 +266,15 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
           <RefreshCw size={14} aria-hidden />
           {refreshing ? "Aktualisiere…" : "Aktualisieren"}
         </button>
+        <button
+          className="btn"
+          type="button"
+          disabled={enriching}
+          onClick={() => void runEnrich()}
+        >
+          <Tags size={14} aria-hidden />
+          {enriching ? "Suche Genres…" : "Genres nachtragen"}
+        </button>
       </div>
       {(langFilter || genreFilter || yearFrom || yearTo || filter) && (
         <p className="muted">
@@ -257,6 +283,25 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
       )}
       {importError && <div className="error-banner">{importError}</div>}
       {importResult && <p className="muted">{importMessage(importResult)}</p>}
+      {genreEnrichProgress && (
+        <div className="row" style={{ marginBottom: 10 }}>
+          <span className="muted">
+            Suche Genres… ({genreEnrichProgress.current}/{genreEnrichProgress.total} · {genreEnrichProgress.enriched} gefunden)
+          </span>
+          <button
+            className="btn small"
+            type="button"
+            onClick={() => void window.ultrastar.genresCancel()}
+          >
+            Abbrechen
+          </button>
+        </div>
+      )}
+      {enrichResult && (
+        <p className="muted">
+          {enrichResult.enriched} Genres nachgetragen · {enrichResult.notFound} nicht gefunden · {enrichResult.txtPatched} song.txt aktualisiert{enrichResult.txtFailed > 0 ? ` · ${enrichResult.txtFailed} Dateien fehlgeschlagen` : ""}{enrichResult.cancelled ? " · abgebrochen" : ""}
+        </p>
+      )}
       {importProgress && (
         <div className="row" style={{ marginBottom: 10 }}>
           <span className="muted">
