@@ -44,11 +44,19 @@ const readHeaders = async (songDir: string): Promise<TxtHeaders | null> => {
   }
 };
 
+const hasSongTxt = async (dir: string): Promise<boolean> => {
+  try {
+    await stat(join(dir, "song.txt"));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const probeNewFolder = async (
-  downloadDir: string,
+  songDir: string,
   name: string,
 ): Promise<ProbeResult> => {
-  const songDir = join(downloadDir, name);
   const meta = await readHeaders(songDir);
   if (meta === null) return { kind: "not-a-song" };
 
@@ -84,10 +92,26 @@ export const importArchive = (
   onProgress?: (p: ImportProgress) => void,
 ): Effect.Effect<ImportResult, Error> =>
   Effect.gen(function* () {
-    const folders = yield* Effect.tryPromise({
+    const candidates = yield* Effect.tryPromise({
       try: async () => {
-        const dirents = await readdir(downloadDir, { withFileTypes: true });
-        return dirents.filter((d) => d.isDirectory()).map((d) => d.name);
+        const result: Array<{ name: string; songDir: string }> = [];
+        const top = await readdir(downloadDir, { withFileTypes: true });
+        for (const d of top.filter((x) => x.isDirectory())) {
+          const dir = join(downloadDir, d.name);
+          if (await hasSongTxt(dir)) {
+            result.push({ name: d.name, songDir: dir });
+            continue;
+          }
+          // Eine Ebene tiefer suchen (artist/letter-Layouts)
+          const sub = await readdir(dir, { withFileTypes: true });
+          for (const s of sub.filter((x) => x.isDirectory())) {
+            const subDir = join(dir, s.name);
+            if (await hasSongTxt(subDir)) {
+              result.push({ name: s.name, songDir: subDir });
+            }
+          }
+        }
+        return result;
       },
       catch: (e) =>
         e instanceof Error ? e : new Error("Failed to read download dir"),
@@ -96,26 +120,27 @@ export const importArchive = (
     const existing = yield* loadDownloadedEntries;
     const trackedByName = new Map(existing.map((e) => [e.dirName, e]));
 
-    const total = folders.length;
+    const total = candidates.length;
     let importedWithoutVideo = 0;
     let skipped = 0;
     const newEntries: DownloadedEntry[] = [];
     const refreshMeta = new Map<string, TxtHeaders>();
 
-    for (let i = 0; i < folders.length; i += SCAN_CONCURRENCY) {
-      const chunk = folders.slice(i, i + SCAN_CONCURRENCY);
+    for (let i = 0; i < candidates.length; i += SCAN_CONCURRENCY) {
+      const chunk = candidates.slice(i, i + SCAN_CONCURRENCY);
       const results = yield* Effect.tryPromise({
         try: () =>
           Promise.all(
-            chunk.map(async (name): Promise<ProbeResult> => {
+            chunk.map(async (candidate): Promise<ProbeResult> => {
+              const { name, songDir } = candidate;
               const tracked = trackedByName.get(name);
               if (tracked) {
                 if (tracked.language) return { kind: "skipped" };
-                const meta = await readHeaders(join(downloadDir, name));
+                const meta = await readHeaders(songDir);
                 if (meta === null) return { kind: "skipped" };
                 return { kind: "refresh", dirName: name, meta };
               }
-              return probeNewFolder(downloadDir, name);
+              return probeNewFolder(songDir, name);
             }),
           ),
         catch: (e) =>

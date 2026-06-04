@@ -112,6 +112,21 @@ test("reports progress and finishes with current === total", async () => {
   expect(last?.current).toBe(3);
 });
 
+test("finds songs nested one level deep (artist/letter layouts)", async () => {
+  const root = await makeArchive();
+  await makeSong(root, "Flat_-_Song", { video: true });
+  await makeSong(root, join("ABBA", "ABBA_-_Nested"), { video: true });
+  await makeSong(root, join("A", "Deep", "Too_-_Deep"), { video: true }); // Tiefe 3 → ignoriert
+
+  const result = await Effect.runPromise(importArchive(root));
+  expect(result.imported).toBe(2);
+
+  const entries = await Effect.runPromise(loadDownloadedEntries);
+  const nested = entries.find((e) => e.dirName === "ABBA_-_Nested");
+  expect(nested?.songDir).toBe(join(root, "ABBA", "ABBA_-_Nested"));
+  expect(entries.find((e) => e.dirName === "Too_-_Deep")).toBeUndefined();
+});
+
 test("stores metadata and backfills tracked entries missing language", async () => {
   const root = await makeArchive();
   await makeSong(root, "Meta Song", {
