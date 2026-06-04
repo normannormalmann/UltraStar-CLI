@@ -89,6 +89,10 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
 
     "downloads:failedList": async () => loadFailedDownloads(state.downloadDir),
 
+    "library:refresh": async () => {
+      await reloadDownloadedEntries();
+    },
+
     "archive:import": async () => {
       if (archiveImportRunning) {
         return { imported: 0, importedWithoutVideo: 0, skipped: 0, refreshed: 0 };

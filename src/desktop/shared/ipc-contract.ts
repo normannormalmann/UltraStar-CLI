@@ -86,6 +86,7 @@ export const INVOKE_CHANNELS = [
   "download:single",
   "downloads:failedList",
   "archive:import",
+  "library:refresh",
   "queue:add",
   "queue:remove",
   "queue:clear",
@@ -143,6 +144,7 @@ export type UltrastarApi = {
   downloadSingle: (song: Song) => Promise<void>;
   failedList: () => Promise<FailedDownload[]>;
   archiveImport: () => Promise<ArchiveImportResult>;
+  libraryRefresh: () => Promise<void>;
   queueAdd: (songs: Song[]) => Promise<number>;
   queueRemove: (apiId: number) => Promise<void>;
   queueClear: () => Promise<void>;

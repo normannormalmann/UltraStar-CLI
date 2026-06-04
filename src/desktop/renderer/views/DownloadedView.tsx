@@ -1,4 +1,4 @@
-import { FolderOpen, FolderSearch } from "lucide-react";
+import { FolderOpen, FolderSearch, RefreshCw } from "lucide-react";
 import type { FC } from "react";
 import { useEffect, useRef, useState } from "react";
 
@@ -49,6 +49,7 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const [importing, setImporting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const [importResult, setImportResult] = useState<ArchiveImportResult | null>(
     null,
   );
@@ -231,6 +232,22 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
           <option value="year">Jahr aufsteigend</option>
         </select>
         {importButton}
+        <button
+          className="btn"
+          type="button"
+          disabled={refreshing}
+          aria-label="Liste aktualisieren"
+          title="Liste aktualisieren (prüft den Ordner-Bestand neu)"
+          onClick={() => {
+            setRefreshing(true);
+            void window.ultrastar
+              .libraryRefresh()
+              .finally(() => setRefreshing(false));
+          }}
+        >
+          <RefreshCw size={14} aria-hidden />
+          {refreshing ? "Aktualisiere…" : "Aktualisieren"}
+        </button>
       </div>
       {(langFilter || genreFilter || yearFrom || yearTo || filter) && (
         <p className="muted">
