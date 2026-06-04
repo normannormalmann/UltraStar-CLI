@@ -25,7 +25,8 @@ export type SearchOrder =
   | "interpret"
   | "title"
   | "year"
-  | "rating";
+  | "rating"
+  | "views";
 
 export type SearchParams = {
   interpret?: string; // artist name

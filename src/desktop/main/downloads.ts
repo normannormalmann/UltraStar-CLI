@@ -172,6 +172,8 @@ export const fetchAllIntoQueue = async (
             year: req.year,
             order: req.order,
             ud: req.ud,
+            golden: req.golden,
+            songcheck: req.songcheck,
             limit,
             start: (page - 1) * limit,
           },

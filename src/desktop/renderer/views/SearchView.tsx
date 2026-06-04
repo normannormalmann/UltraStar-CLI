@@ -43,6 +43,7 @@ const ORDER_OPTIONS = [
   { value: "title", label: "Titel" },
   { value: "year", label: "Jahr" },
   { value: "rating", label: "Bewertung" },
+  { value: "views", label: "Views" },
 ] as const;
 
 export const SearchView: FC<{
@@ -64,10 +65,13 @@ export const SearchView: FC<{
   const [year, setYear] = useState("");
   const [order, setOrder] = useState<string>("lastchange");
   const [ud, setUd] = useState<"asc" | "desc">("desc");
+  const [golden, setGolden] = useState(false);
+  const [songcheck, setSongcheck] = useState(false);
 
   const activeFilterCount =
     (language ? 1 : 0) + (genre ? 1 : 0) + (year ? 1 : 0) +
-    (order !== "lastchange" || ud !== "desc" ? 1 : 0);
+    (order !== "lastchange" || ud !== "desc" ? 1 : 0) +
+    (golden ? 1 : 0) + (songcheck ? 1 : 0);
 
   const filterRequest = (): BulkQueueRequest => ({
     artist,
@@ -77,6 +81,8 @@ export const SearchView: FC<{
     year: year ? Number.parseInt(year, 10) : undefined,
     order: order === "lastchange" ? undefined : (order as BulkQueueRequest["order"]),
     ud: ud === "desc" ? undefined : ud,
+    golden: golden || undefined,
+    songcheck: songcheck || undefined,
   });
 
   const fetchAllProgress = useIpcEvent("event:fetchAllProgress", null);
@@ -229,6 +235,22 @@ export const SearchView: FC<{
                 </>
               )}
             </button>
+            <label className="row-inline muted" style={{ gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={golden}
+                onChange={(e) => setGolden(e.target.checked)}
+              />
+              Nur Golden Notes
+            </label>
+            <label className="row-inline muted" style={{ gap: 6 }}>
+              <input
+                type="checkbox"
+                checked={songcheck}
+                onChange={(e) => setSongcheck(e.target.checked)}
+              />
+              Nur Songcheck
+            </label>
           </div>
         )}
       </div>
@@ -248,6 +270,8 @@ export const SearchView: FC<{
                 <th>Interpret</th>
                 <th>Titel</th>
                 <th>Sprachen</th>
+                <th style={{ width: 70 }}>Bewertung</th>
+                <th style={{ width: 70 }}>Views</th>
                 <th style={{ width: 170 }} />
               </tr>
             </thead>
@@ -278,6 +302,16 @@ export const SearchView: FC<{
                           {l}
                         </span>
                       ))}
+                    </td>
+                    <td className="muted">
+                      {s.rating !== undefined
+                        ? `★ ${s.rating.toLocaleString("de-DE")}`
+                        : ""}
+                    </td>
+                    <td className="muted">
+                      {s.views !== undefined
+                        ? s.views.toLocaleString("de-DE")
+                        : ""}
                     </td>
                     <td>
                       {!isDownloaded && (

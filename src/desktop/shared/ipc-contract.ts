@@ -22,6 +22,8 @@ export type SearchRequest = {
   year?: number;
   order?: SearchOrder;
   ud?: "asc" | "desc";
+  golden?: boolean;
+  songcheck?: boolean;
 };
 
 export type BulkQueueRequest = Omit<SearchRequest, "page">;

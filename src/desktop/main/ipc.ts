@@ -55,6 +55,8 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
             year: req.year,
             order: req.order,
             ud: req.ud,
+            golden: req.golden,
+            songcheck: req.songcheck,
             limit: SEARCH_PAGE_SIZE,
             start,
           },
