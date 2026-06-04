@@ -54,6 +54,7 @@ export const downloadSong = (
     if (links.length > 0) {
       videoLink = links[0]?.link ?? null;
     }
+    const videoGapOverride = links[0]?.videoGap;
     if (!videoLink) {
       const results = yield* Effect.catchAll(
         searchYoutubeVideos(`${song.artist} ${song.title}`),
@@ -129,6 +130,7 @@ export const downloadSong = (
 
       const headers = {
         ...parsed.headers,
+        ...(videoGapOverride ? { videogap: videoGapOverride } : {}),
         mp3: "video.mp4",
         video: "video.mp4",
         cover: "cover.jpg",
