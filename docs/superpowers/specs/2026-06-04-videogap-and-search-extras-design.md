@@ -31,6 +31,11 @@
 - Ergebnis-Tabelle: zwei schlanke Spalten — Bewertung (`★ 4,5`-Text, leer wenn ohne Rating) und Views (de-formatiert). 
 - Sortierung: Option „Views" zusätzlich, NUR falls USDB `order=views` akzeptiert (Live-Test; sonst entfällt die Option ersatzlos).
 
+## Nachtrag (Live-Test-Feedback 2026-06-04)
+
+- **Live-Filter:** Nach erfolgter Suche löst jede Änderung an Sprache/Genre/Jahr/Sortierung/Richtung/Golden/Songcheck automatisch `fetchPage(1)` aus (Debounce 500 ms; vor der ersten Suche passiert nichts).
+- **Bestands-Toggle:** Select „Bestand: Alle / Nur fehlende / Nur vorhandene" in der Filterzeile — clientseitig auf die angezeigte Seite angewandt (`isDownloaded` pro Zeile existiert bereits). Bewusste Grenze: gefilterte Seiten zeigen ggf. weniger als 20 Zeilen; Seiten-Navigation bleibt USDB-basiert.
+
 ## Verifikation
 
 - Unit-Tests: youtube-Kommentar-Parsing (realer Fixture-Fall), parseSongFromTable (neue Zellen), buildFormBody (golden/songcheck).

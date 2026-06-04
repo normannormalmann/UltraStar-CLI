@@ -12,7 +12,7 @@ import {
   SlidersHorizontal,
 } from "lucide-react";
 import type { FC, FormEvent } from "react";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { sanitizeForPath } from "../../../core/download/naming.ts";
 import type {
   AppStatus,
@@ -67,11 +67,13 @@ export const SearchView: FC<{
   const [ud, setUd] = useState<"asc" | "desc">("desc");
   const [golden, setGolden] = useState(false);
   const [songcheck, setSongcheck] = useState(false);
+  const [stock, setStock] = useState<"all" | "missing" | "owned">("all");
 
   const activeFilterCount =
     (language ? 1 : 0) + (genre ? 1 : 0) + (year ? 1 : 0) +
     (order !== "lastchange" || ud !== "desc" ? 1 : 0) +
-    (golden ? 1 : 0) + (songcheck ? 1 : 0);
+    (golden ? 1 : 0) + (songcheck ? 1 : 0) +
+    (stock !== "all" ? 1 : 0);
 
   const filterRequest = (): BulkQueueRequest => ({
     artist,
@@ -98,12 +100,20 @@ export const SearchView: FC<{
     status.ytDlpAvailable !== false && status.ffmpegAvailable !== false;
   const bulkRunning = fetchAllProgress !== null;
 
-  const fetchPage = async (p: number): Promise<void> => {
+  const fetchPage = useCallback(async (p: number): Promise<void> => {
     setLoading(true);
     setError(null);
     try {
       const result = await window.ultrastar.search({
-        ...filterRequest(),
+        artist,
+        title,
+        language: language || undefined,
+        genre: genre || undefined,
+        year: year ? Number.parseInt(year, 10) : undefined,
+        order: order === "lastchange" ? undefined : (order as BulkQueueRequest["order"]),
+        ud: ud === "desc" ? undefined : ud,
+        golden: golden || undefined,
+        songcheck: songcheck || undefined,
         page: p,
       });
       setSongs(result.songs);
@@ -115,7 +125,21 @@ export const SearchView: FC<{
     } finally {
       setLoading(false);
     }
-  };
+  }, [artist, title, language, genre, year, order, ud, golden, songcheck]);
+
+  // Filter-Änderungen nach erfolgter Suche automatisch anwenden (debounced,
+  // damit z.B. Jahr-Tippen nicht pro Ziffer eine Suche auslöst).
+  const searchedRef = useRef(false);
+  useEffect(() => {
+    searchedRef.current = searched;
+  }, [searched]);
+  useEffect(() => {
+    if (!searchedRef.current) return;
+    const t = setTimeout(() => {
+      void fetchPage(1);
+    }, 500);
+    return () => clearTimeout(t);
+  }, [fetchPage]);
 
   const onSubmit = (e: FormEvent): void => {
     e.preventDefault();
@@ -131,6 +155,16 @@ export const SearchView: FC<{
       void window.ultrastar.queueEntireDatabase();
     }
   };
+
+  const isDownloadedSong = (s: Song): boolean =>
+    downloadedIds.has(s.apiId) ||
+    downloadedDirs.has(sanitizeForPath(`${s.artist} - ${s.title}`).toLowerCase());
+  const visibleSongs =
+    stock === "all"
+      ? songs
+      : songs.filter((s) =>
+          stock === "owned" ? isDownloadedSong(s) : !isDownloadedSong(s),
+        );
 
   return (
     <div>
@@ -235,6 +269,15 @@ export const SearchView: FC<{
                 </>
               )}
             </button>
+            <select
+              className="input"
+              value={stock}
+              onChange={(e) => setStock(e.target.value as typeof stock)}
+            >
+              <option value="all">Bestand: Alle</option>
+              <option value="missing">Nur fehlende</option>
+              <option value="owned">Nur vorhandene</option>
+            </select>
             <label className="row-inline muted" style={{ gap: 6 }}>
               <input
                 type="checkbox"
@@ -263,6 +306,12 @@ export const SearchView: FC<{
 
       {songs.length > 0 && (
         <>
+          {visibleSongs.length === 0 ? (
+            <p className="muted">
+              Alle Treffer dieser Seite sind{" "}
+              {stock === "missing" ? "bereits vorhanden" : "noch nicht vorhanden"}.
+            </p>
+          ) : (
           <table className="song-table">
             <thead>
               <tr>
@@ -276,12 +325,8 @@ export const SearchView: FC<{
               </tr>
             </thead>
             <tbody>
-              {songs.map((s) => {
-                const isDownloaded =
-                  downloadedIds.has(s.apiId) ||
-                  downloadedDirs.has(
-                    sanitizeForPath(`${s.artist} - ${s.title}`).toLowerCase(),
-                  );
+              {visibleSongs.map((s) => {
+                const isDownloaded = isDownloadedSong(s);
                 return (
                   <tr key={s.apiId}>
                     <td>
@@ -343,13 +388,14 @@ export const SearchView: FC<{
               })}
             </tbody>
           </table>
+          )}
 
           <div className="row" style={{ marginTop: 12, justifyContent: "space-between" }}>
             <span className="row">
               <button
                 className="btn small"
                 type="button"
-                onClick={() => void window.ultrastar.queueAdd(songs)}
+                onClick={() => void window.ultrastar.queueAdd(visibleSongs)}
               >
                 <Plus size={14} aria-hidden />Seite in Queue
               </button>
