@@ -6,6 +6,13 @@ export type Song = {
   artist: string;
   title: string;
   languages: string[];
+  genre?: string;
+  year?: number;
+  edition?: string;
+  goldenNotes?: boolean;
+  creator?: string;
+  rating?: number; // 0–5, halbe Sterne
+  views?: number;
 };
 
 export type Page = {
@@ -30,6 +37,8 @@ export type SearchParams = {
   ud?: "asc" | "desc"; // default: desc
   limit?: number; // max 100
   start?: number; // pagination offset
+  golden?: boolean;
+  songcheck?: boolean;
 };
 
 const decodeHtmlEntities = (str: string): string =>
@@ -74,11 +83,36 @@ export const parseSongFromTable = (html: string | undefined): Song | null => {
 
   if (!songId || !artist || !title || !languages) return null;
 
+  const text = (i: number): string | undefined => {
+    const v = songMetadata?.[i];
+    return typeof v === "string" && v.trim().length > 0
+      ? decodeHtmlEntities(v.trim())
+      : undefined;
+  };
+  const num = (i: number): number | undefined => {
+    const v = text(i);
+    if (v === undefined) return undefined;
+    const n = Number.parseInt(v, 10);
+    return Number.isNaN(n) ? undefined : n;
+  };
+  const ratingCell = songMetadata?.[8] ?? "";
+  const fullStars = (ratingCell.match(/images\/star\.png/g) ?? []).length;
+  const halfStars = (ratingCell.match(/images\/half_star\.png/g) ?? []).length;
+  const rating =
+    fullStars + halfStars > 0 ? fullStars + 0.5 * halfStars : undefined;
+
   return {
     apiId: songId,
     artist,
     title,
     languages,
+    genre: text(2),
+    year: num(3),
+    edition: text(4),
+    goldenNotes: (songMetadata?.[5] ?? "").trim().toLowerCase() === "yes",
+    creator: text(7),
+    rating,
+    views: num(9),
   };
 };
 
@@ -141,6 +175,8 @@ export const buildFormBody = (params: SearchParams): URLSearchParams => {
   if (params.year != null && Number.isFinite(params.year)) {
     form.set("year", String(Math.floor(params.year)));
   }
+  if (params.golden === true) form.set("golden", "1");
+  if (params.songcheck === true) form.set("songcheck", "1");
   form.set("limit", String(clampLimit(params.limit)));
   form.set("start", String(normalizeStart(params.start)));
 

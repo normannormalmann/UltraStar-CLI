@@ -2,25 +2,36 @@ import { expect, test } from "bun:test";
 import { buildFormBody, parseSongFromTable, parseSongsFromSearch } from "./search.ts";
 
 /**
- * Inner-HTML einer USDB-Ergebniszeile (Inhalt eines <tr>).
- * Hinweis: Das <a> in der Artist-Zelle ist bewusst UNGESCHLOSSEN — die
- * Parser-Regex `(?:<a.*?>)?(.*)<\/td>` würde ein `</a>` mit ins Capture
- * nehmen; USDBs reales HTML schließt diese Tags nicht.
+ * Inner-HTML einer USDB-Ergebniszeile (live-verifizierte Zellstruktur).
+ * Titel-Zelle mit UNGESCHLOSSENEM <a> (so liefert es USDB); die letzte
+ * Zip-Zelle hat keine Attribute und wird von der td-Regex nicht erfasst.
  */
 const songRow = (
   id: number,
   artist: string,
   title: string,
   language: string,
+  opts: {
+    genre?: string;
+    year?: string;
+    edition?: string;
+    golden?: "Yes" | "No";
+    creator?: string;
+    ratingHtml?: string;
+    views?: string;
+  } = {},
 ) => `
-  <td onclick="show_detail(${id})" class="c"><a href="#">${artist}</td>
-  <td class="c">${title}</td>
-  <td class="c">Edition</td>
-  <td class="c">yes</td>
-  <td class="c">no</td>
-  <td class="c">30.05.26</td>
-  <td class="c">${language}</td>
-  <td class="c">1080p</td>
+  <td onclick="show_detail(${id})">${artist}</td>
+  <td onclick="show_detail(${id})"><a href="?link=detail&id=${id}">${title}</td>
+  <td onclick="show_detail(${id})">${opts.genre ?? ""}</td>
+  <td onclick="show_detail(${id})">${opts.year ?? ""}</td>
+  <td onclick="show_detail(${id})">${opts.edition ?? ""}</td>
+  <td onclick="show_detail(${id})">${opts.golden ?? "No"}</td>
+  <td onclick="show_detail(${id})">${language}</td>
+  <td onclick="show_detail(${id})">${opts.creator ?? ""}</td>
+  <td onclick="show_detail(${id})">${opts.ratingHtml ?? ""}</td>
+  <td onclick="show_detail(${id})">${opts.views ?? ""}</td>
+  <td><a href="#" onClick="addToList(${id}, 1)"><img src="images/mini-zip.png" border="0"></a></td>
 `;
 
 test("parses a single song row", () => {
@@ -29,6 +40,7 @@ test("parses a single song row", () => {
     artist: "ABBA",
     title: "Dancing Queen",
     languages: ["english"],
+    goldenNotes: false,
   });
 });
 
@@ -91,4 +103,41 @@ test("buildFormBody includes filters only when set", () => {
   expect(filtered.get("year")).toBe("1999");
   expect(filtered.get("order")).toBe("year");
   expect(filtered.get("ud")).toBe("asc");
+});
+
+test("parses extended row metadata", () => {
+  const song = parseSongFromTable(
+    songRow(15472, "Passion Pit", "Carried Away", "English", {
+      genre: "Pop",
+      year: "2012",
+      golden: "Yes",
+      creator: "horrible",
+      ratingHtml:
+        '<img src="images/star.png"> <img src="images/star.png"> <img src="images/half_star.png"> <img src="images/star2.png"> <img src="images/star2.png">',
+      views: "401",
+    }),
+  );
+  expect(song?.genre).toBe("Pop");
+  expect(song?.year).toBe(2012);
+  expect(song?.goldenNotes).toBe(true);
+  expect(song?.creator).toBe("horrible");
+  expect(song?.rating).toBe(2.5);
+  expect(song?.views).toBe(401);
+});
+
+test("omits extended fields when cells are empty", () => {
+  const song = parseSongFromTable(songRow(7, "A", "B", "English"));
+  expect(song?.genre).toBeUndefined();
+  expect(song?.year).toBeUndefined();
+  expect(song?.goldenNotes).toBe(false);
+  expect(song?.rating).toBeUndefined();
+  expect(song?.views).toBeUndefined();
+});
+
+test("buildFormBody sends golden and songcheck only when true", () => {
+  expect(buildFormBody({}).get("golden")).toBeNull();
+  expect(buildFormBody({}).get("songcheck")).toBeNull();
+  const f = buildFormBody({ golden: true, songcheck: true });
+  expect(f.get("golden")).toBe("1");
+  expect(f.get("songcheck")).toBe("1");
 });
