@@ -15,6 +15,8 @@ export type DownloadedEntry = {
   creator?: string;
   year?: number;
   bpm?: number;
+  realBpm?: number;
+  explicit?: boolean;
 };
 
 let memoryCache: DownloadedEntry[] | null = null;
