@@ -4,6 +4,7 @@ import { API_URL } from "./config.ts";
 export type YoutubeLink = {
   createdAt: Date;
   link: string;
+  videoGap?: string;
 };
 
 export const parseComments = (html: string): string[] => {
@@ -43,18 +44,19 @@ export const parseYoutubeLinkFromComment = (
   };
 };
 
-export const parseYoutubeLinks = (html: string): YoutubeLink[] => {
-  const comments = parseComments(html)
-    .map((c) =>
-      c.match(
-        /<td>(\d+\.\d+\.\d+) - (\d+:\d+)[\s\S]*src="(https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)[\w-]+)"/m,
-      ),
-    )
-    .map(parseYoutubeLinkFromComment)
-    .filter(Boolean) as YoutubeLink[];
-
-  return comments;
-};
+export const parseYoutubeLinks = (html: string): YoutubeLink[] =>
+  parseComments(html)
+    .map((c) => {
+      const base = parseYoutubeLinkFromComment(
+        c.match(
+          /<td>(\d+\.\d+\.\d+) - (\d+:\d+)[\s\S]*src="(https?:\/\/(?:www\.)?(?:youtube\.com\/(?:watch\?v=|embed\/|v\/|shorts\/)|youtu\.be\/)[\w-]+)"/m,
+        ),
+      );
+      if (!base) return null;
+      const videoGap = c.match(/#VIDEOGAP:\s*(\d+(?:[.,]\d+)?)/i)?.[1];
+      return videoGap ? { ...base, videoGap } : base;
+    })
+    .filter((l): l is YoutubeLink => l !== null);
 
 export const fetchDetailPage = (id: number, cookie?: string) =>
   Effect.tryPromise({
