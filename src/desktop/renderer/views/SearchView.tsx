@@ -133,13 +133,23 @@ export const SearchView: FC<{
   useEffect(() => {
     searchedRef.current = searched;
   }, [searched]);
+
+  const fetchPageRef = useRef(fetchPage);
+  useEffect(() => {
+    fetchPageRef.current = fetchPage;
+  }, [fetchPage]);
+
+  // Filter-Änderungen nach erfolgter Suche automatisch anwenden (debounced).
+  // Bewusst NUR die Filter-Werte als Trigger — Tippen in Interpret/Titel
+  // startet keine Suche (dafür gibt es den Suchen-Button/Enter).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: nur Filter-Werte sollen triggern
   useEffect(() => {
     if (!searchedRef.current) return;
     const t = setTimeout(() => {
-      void fetchPage(1);
+      void fetchPageRef.current(1);
     }, 500);
     return () => clearTimeout(t);
-  }, [fetchPage]);
+  }, [language, genre, year, order, ud, golden, songcheck]);
 
   const onSubmit = (e: FormEvent): void => {
     e.preventDefault();
