@@ -47,14 +47,20 @@ export const loadDownloadedEntries: Effect.Effect<DownloadedEntry[], Error> =
 export const saveDownloadedEntries = (
   entries: DownloadedEntry[],
 ): Effect.Effect<void, Error> =>
-  Effect.gen(function* () {
-    memoryCache = entries;
-    const filePath = yield* resolveDataFilePath("downloaded.json");
-    yield* Effect.tryPromise({
-      try: async () => writeFile(filePath, JSON.stringify(entries, null, 2)),
-      catch: (e) =>
-        e instanceof Error ? e : new Error("Failed to save downloaded entries"),
-    });
+  Effect.tryPromise({
+    try: () => {
+      writePromise = writePromise.then(async () => {
+        memoryCache = entries;
+        const filePath = await Effect.runPromise(
+          resolveDataFilePath("downloaded.json"),
+        );
+        await writeFile(filePath, JSON.stringify(entries, null, 2));
+        return entries;
+      });
+      return writePromise.then(() => undefined);
+    },
+    catch: (e) =>
+      e instanceof Error ? e : new Error("Failed to save downloaded entries"),
   });
 
 export const appendDownloadedEntry = (

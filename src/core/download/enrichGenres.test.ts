@@ -96,3 +96,38 @@ test("aborts after 5 consecutive hard errors", async () => {
     ),
   ).rejects.toThrow(/5 Fehler in Folge/);
 });
+
+test("persist merges with entries added concurrently (no lost update)", async () => {
+  const root = await seed(3);
+  let injected = false;
+  const result = await Effect.runPromise(
+    enrichGenres(
+      (artist) =>
+        Effect.gen(function* () {
+          if (!injected) {
+            injected = true;
+            // Simuliert einen parallel abgeschlossenen Download
+            const current = yield* loadDownloadedEntries;
+            yield* saveDownloadedEntries([
+              {
+                apiId: 4242,
+                artist: "Concurrent",
+                title: "Download",
+                dirName: "Concurrent_-_Download",
+                songDir: join(root, "Concurrent_-_Download"),
+                downloadedAt: "2026-06-04T00:00:00.000Z",
+                genre: "Pop",
+              },
+              ...current,
+            ]);
+          }
+          return { genre: "Rock" };
+        }),
+      { minDelayMs: 0, persistEvery: 1 },
+    ),
+  );
+  expect(result.enriched).toBe(3);
+  const entries = await Effect.runPromise(loadDownloadedEntries);
+  expect(entries.find((e) => e.apiId === 4242)).toBeDefined(); // survives persist!
+  expect(entries.filter((e) => e.genre === "Rock")).toHaveLength(3);
+});

@@ -37,6 +37,10 @@ const MAX_CONSECUTIVE_ERRORS = 5;
  * Trägt fehlende Genres (und year/realBpm/explicit, wo geliefert) nach.
  * Resumierbar: bereits angereicherte Einträge werden übersprungen;
  * Persistenz alle persistEvery (Default 50) Einträge.
+ *
+ * Merge-on-persist: nur geänderte Einträge werden in `changed` gehalten.
+ * Beim Persist wird die aktuelle Dateiliste neu geladen und die Änderungen
+ * darüber gelegt — so gehen parallel heruntergeladene Songs nicht verloren.
  */
 export const enrichGenres = (
   lookup: (
@@ -49,7 +53,9 @@ export const enrichGenres = (
     const persistEvery = opts.persistEvery ?? 50;
     const all = yield* loadDownloadedEntries;
     const todo = all.filter((e) => !e.genre);
-    const byApiId = new Map(all.map((e) => [e.apiId, e]));
+
+    // Only changed entries live here; persist merges them onto the live store.
+    const changed = new Map<number, DownloadedEntry>();
 
     let processed = 0;
     let enriched = 0;
@@ -61,7 +67,13 @@ export const enrichGenres = (
     let cancelled = false;
 
     const persist = () =>
-      saveDownloadedEntries([...byApiId.values()]);
+      Effect.gen(function* () {
+        const live = yield* loadDownloadedEntries;
+        const liveIds = new Set(live.map((e) => e.apiId));
+        const merged = live.map((e) => changed.get(e.apiId) ?? e);
+        // If an enriched entry was externally removed, do not re-insert it.
+        yield* saveDownloadedEntries(merged.filter((e) => liveIds.has(e.apiId)));
+      });
 
     for (const entry of todo) {
       if (opts.shouldCancel?.()) {
@@ -103,7 +115,7 @@ export const enrichGenres = (
               ? { explicit: result.r.explicit }
               : {}),
           };
-          byApiId.set(entry.apiId, updated);
+          changed.set(entry.apiId, updated);
           enriched++;
           dirtySinceSave++;
 
