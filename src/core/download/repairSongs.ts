@@ -41,7 +41,8 @@ export function applyVideoGap(txt: string, gap: string): string {
   if (/^#VIDEOGAP:.*$/m.test(txt)) {
     return txt.replace(/^#VIDEOGAP:.*$/m, line);
   }
-  return txt.replace(/^(#[^\n]*\n)/, `$1${line}\n`);
+  const eol = txt.includes("\r\n") ? "\r\n" : "\n";
+  return txt.replace(/^(#[^\n]*\n)/, `$1${line}${eol}`);
 }
 
 /** Stable negative hash so songs without a USDB apiId get a unique tracking id. */

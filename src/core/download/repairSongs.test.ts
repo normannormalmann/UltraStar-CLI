@@ -71,3 +71,9 @@ test("applyVideoGap inserts after first header when absent", () => {
     "#ARTIST:X\n#VIDEOGAP:37.5\n#TITLE:Y\n#BPM:120\n: 0 4 0 La\n",
   );
 });
+
+test("applyVideoGap preserves CRLF line endings on insert", () => {
+  const txt = "#ARTIST:X\r\n#TITLE:Y\r\n: 0 4 0 La\r\n";
+  const out = applyVideoGap(txt, "37.5");
+  expect(out).toBe("#ARTIST:X\r\n#VIDEOGAP:37.5\r\n#TITLE:Y\r\n: 0 4 0 La\r\n");
+});
