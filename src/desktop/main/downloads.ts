@@ -112,7 +112,7 @@ export const requestQueueCancel = (): void => {
   queueCancelRequested = true;
 };
 
-/** Queue abarbeiten: Batches à DOWNLOAD_CONCURRENCY, wie die TUI. Abbrechbar. */
+/** Queue abarbeiten: Batches à konfigurierter Parallelität (Einstellungen). Abbrechbar. */
 export const processQueue = async (): Promise<void> => {
   if (state.queueRunning || state.queue.length === 0) return;
   if (

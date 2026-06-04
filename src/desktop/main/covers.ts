@@ -32,6 +32,7 @@ const coversDir = (): string => join(app.getPath("userData"), "covers");
 
 // Einfacher Memory-LRU über Map-Einfügereihenfolge
 const memoryCache = new Map<number, string>();
+const localMemoryCache = new Map<string, string>();
 
 const remember = (apiId: number, dataUrl: string): void => {
   memoryCache.delete(apiId);
@@ -104,7 +105,7 @@ export const clearCoverCaches = async (): Promise<{ deletedFiles: number }> => {
   try {
     const dir = coversDir();
     for (const name of await readdir(dir)) {
-      await rm(join(dir, name), { force: true });
+      await rm(join(dir, name), { force: true, recursive: true });
       deletedFiles++;
     }
   } catch {
@@ -112,8 +113,6 @@ export const clearCoverCaches = async (): Promise<{ deletedFiles: number }> => {
   }
   return { deletedFiles };
 };
-
-const localMemoryCache = new Map<string, string>();
 
 /**
  * Cover aus dem Song-Ordner (cover.jpg) als data-URL.

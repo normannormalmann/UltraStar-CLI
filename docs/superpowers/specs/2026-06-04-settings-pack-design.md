@@ -56,3 +56,4 @@ export const songRelativePath = (artist: string, title: string, layout: FolderLa
 - Migration/Umstrukturierung des Bestands (USDX kommt mit gemischten Strukturen klar; bei Bedarf späteres Feature).
 - Syncer-Dateinamen-Schema (Folgepaket mit eigener Spec).
 - TUI-Anbindung der neuen Einstellungen (liest Defaults; Werte aus config.json wirken dort, wo die Core-Funktionen sie ohne Parameter defaulten, bewusst nicht).
+- Leaf-Namens-Kollisionen über physische Ordner hinweg (z.B. flacher Bestand "X_-_Y" UND verschachteltes "A/X_-_Y") werden bewusst zusammengefasst — der Import kennt nur den Leaf-Namen; doppelte physische Kopien desselben Songs bleiben unsichtbar.
