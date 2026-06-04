@@ -114,6 +114,7 @@ export const EVENT_CHANNELS = [
   "event:downloadedChanged",
   "event:fetchAllProgress",
   "event:archiveImportProgress",
+  "event:libraryRefreshProgress",
   "event:queueRunning",
   "event:repair",
   "event:binariesProgress",
@@ -130,6 +131,7 @@ export type EventPayloads = {
   "event:downloadedChanged": DownloadedEntry[];
   "event:fetchAllProgress": FetchAllProgress;
   "event:archiveImportProgress": ArchiveImportProgress | null;
+  "event:libraryRefreshProgress": { current: number; total: number } | null;
   "event:queueRunning": boolean;
   "event:repair": RepairState;
   "event:binariesProgress": BinariesProgress;

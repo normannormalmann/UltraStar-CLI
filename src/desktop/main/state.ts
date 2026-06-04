@@ -133,6 +133,14 @@ class AppState {
     broadcast("event:downloadedChanged", this.downloaded);
   }
 
+  /** Einzelnen frisch geladenen Eintrag einpflegen — ohne 28k-Voll-Scan. */
+  upsertDownloaded(entry: DownloadedEntry): void {
+    this.setDownloaded([
+      entry,
+      ...this.downloaded.filter((e) => e.apiId !== entry.apiId),
+    ]);
+  }
+
   setQueueRunning(running: boolean): void {
     this.queueRunning = running;
     broadcast("event:queueRunning", running);
@@ -146,22 +154,33 @@ class AppState {
 
 export const state = new AppState();
 
+const STAT_CONCURRENCY = 64;
+
 /** Verlauf laden und Einträge ohne video.mp4 für die UI ausfiltern (wie TUI). */
-export const reloadDownloadedEntries = async (): Promise<void> => {
+export const reloadDownloadedEntries = async (
+  onProgress?: (p: { current: number; total: number }) => void,
+): Promise<void> => {
   try {
     const entries = await Effect.runPromise(loadDownloadedEntries);
     const valid: DownloadedEntry[] = [];
-    await Promise.all(
-      entries.map(async (e) => {
-        try {
-          await stat(join(e.songDir, "video.mp4"));
-          valid.push(e);
-        } catch {
-          // Datei fehlt – Eintrag bleibt in downloaded.json für die Reparatur,
-          // wird aber nicht in der UI gelistet (gleiches Verhalten wie TUI).
-        }
-      }),
-    );
+    for (let i = 0; i < entries.length; i += STAT_CONCURRENCY) {
+      const chunk = entries.slice(i, i + STAT_CONCURRENCY);
+      await Promise.all(
+        chunk.map(async (e) => {
+          try {
+            await stat(join(e.songDir, "video.mp4"));
+            valid.push(e);
+          } catch {
+            // Datei fehlt – Eintrag bleibt in downloaded.json für die Reparatur,
+            // wird aber nicht in der UI gelistet (gleiches Verhalten wie TUI).
+          }
+        }),
+      );
+      onProgress?.({
+        current: Math.min(i + STAT_CONCURRENCY, entries.length),
+        total: entries.length,
+      });
+    }
     state.setDownloaded(valid);
   } catch (e) {
     console.error("Failed to load downloaded entries:", e);

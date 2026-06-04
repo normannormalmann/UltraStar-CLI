@@ -90,7 +90,13 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
     "downloads:failedList": async () => loadFailedDownloads(state.downloadDir),
 
     "library:refresh": async () => {
-      await reloadDownloadedEntries();
+      try {
+        await reloadDownloadedEntries((p) =>
+          broadcast("event:libraryRefreshProgress", p),
+        );
+      } finally {
+        broadcast("event:libraryRefreshProgress", null);
+      }
     },
 
     "archive:import": async () => {
@@ -109,11 +115,14 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
             broadcast("event:archiveImportProgress", p),
           ),
         );
-        await reloadDownloadedEntries();
+        await reloadDownloadedEntries((p) =>
+          broadcast("event:libraryRefreshProgress", p),
+        );
         return result;
       } finally {
         archiveImportRunning = false;
         broadcast("event:archiveImportProgress", null);
+        broadcast("event:libraryRefreshProgress", null);
       }
     },
 
@@ -161,7 +170,10 @@ export const handlers: Record<InvokeChannel, (payload?: any) => Promise<any>> =
         ),
       )
         .then(async (result) => {
-          await reloadDownloadedEntries();
+          await reloadDownloadedEntries((p) =>
+            broadcast("event:libraryRefreshProgress", p),
+          );
+          broadcast("event:libraryRefreshProgress", null);
           broadcast("event:repair", {
             running: false,
             progress: null,

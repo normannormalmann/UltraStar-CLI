@@ -7,7 +7,7 @@ import { parseTxtHeaders, type TxtHeaders } from "../../core/download/repairSong
 import { downloadSong } from "../../core/download/downloadSong.ts";
 import { appendDownloadedEntry } from "../../core/storage/downloaded.ts";
 import { appendFailedDownload } from "../../core/storage/failedDownloads.ts";
-import { broadcast, reloadDownloadedEntries, state } from "./state.ts";
+import { broadcast, state } from "./state.ts";
 import type { BulkQueueRequest } from "../shared/ipc-contract.ts";
 
 const DOWNLOAD_CONCURRENCY = 3; // wie TUI
@@ -67,23 +67,22 @@ export const downloadSongItem = async (song: Song): Promise<void> => {
       .then((txt) => parseTxtHeaders(txt))
       .catch(() => ({}) as TxtHeaders);
 
-    await Effect.runPromise(
-      appendDownloadedEntry({
-        apiId: song.apiId,
-        artist: song.artist,
-        title: song.title,
-        dirName: result.dirName,
-        songDir: result.songDir,
-        downloadedAt: new Date().toISOString(),
-        ...entryMetadata(headers),
-      }),
-    ).catch((e) => {
+    const entry = {
+      apiId: song.apiId,
+      artist: song.artist,
+      title: song.title,
+      dirName: result.dirName,
+      songDir: result.songDir,
+      downloadedAt: new Date().toISOString(),
+      ...entryMetadata(headers),
+    };
+    await Effect.runPromise(appendDownloadedEntry(entry)).catch((e) => {
       broadcast("event:error", {
         context: "tracking",
         message: `Download ok, Tracking fehlgeschlagen: ${e instanceof Error ? e.message : String(e)}`,
       });
     });
-    await reloadDownloadedEntries();
+    state.upsertDownloaded(entry);
 
     state.patchActiveDownload(song.apiId, { progress: 1, status: "completed" });
     setTimeout(

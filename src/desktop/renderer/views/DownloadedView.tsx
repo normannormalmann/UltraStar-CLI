@@ -38,6 +38,7 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
   entries,
 }) => {
   const importProgress = useIpcEvent("event:archiveImportProgress", null);
+  const refreshProgress = useIpcEvent("event:libraryRefreshProgress", null);
   const [filter, setFilter] = useState("");
   const [langFilter, setLangFilter] = useState("");
   const [genreFilter, setGenreFilter] = useState("");
@@ -267,6 +268,22 @@ export const DownloadedView: FC<{ entries: DownloadedEntry[] }> = ({
               className="progress-fill"
               style={{
                 width: `${Math.round((importProgress.current / Math.max(importProgress.total, 1)) * 100)}%`,
+              }}
+            />
+          </div>
+        </div>
+      )}
+      {refreshProgress && (
+        <div className="row" style={{ marginBottom: 10 }}>
+          <span className="muted">
+            Prüfe Bestand… ({refreshProgress.current.toLocaleString("de-DE")}/
+            {refreshProgress.total.toLocaleString("de-DE")})
+          </span>
+          <div className="progress-track">
+            <div
+              className="progress-fill"
+              style={{
+                width: `${Math.round((refreshProgress.current / Math.max(refreshProgress.total, 1)) * 100)}%`,
               }}
             />
           </div>
