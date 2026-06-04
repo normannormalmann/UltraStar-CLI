@@ -102,7 +102,7 @@ test("persist merges with entries added concurrently (no lost update)", async ()
   let injected = false;
   const result = await Effect.runPromise(
     enrichGenres(
-      (artist) =>
+      (_artist) =>
         Effect.gen(function* () {
           if (!injected) {
             injected = true;
