@@ -49,3 +49,32 @@ export const sanitizeForPath = (name: string): string => {
 
   return sanitized;
 };
+
+export type FolderLayout = "flat" | "artist" | "letter";
+
+/** Buchstaben-Bucket des sanitisierten Artists: A–Z, sonst "#". */
+const letterBucket = (artist: string): string => {
+  const first = sanitizeForPath(artist).charAt(0).toUpperCase();
+  return first >= "A" && first <= "Z" ? first : "#";
+};
+
+/**
+ * Relativer Song-Pfad unter dem Download-Ordner (mit "/" als Trenner;
+ * node:path join normalisiert plattformspezifisch). Der Leaf-Name ist in
+ * allen Layouts identisch — Invariante für dirName-Dedupe und ✓-Marker.
+ */
+export const songRelativePath = (
+  artist: string,
+  title: string,
+  layout: FolderLayout,
+): string => {
+  const leaf = sanitizeForPath(`${artist} - ${title}`);
+  switch (layout) {
+    case "artist":
+      return `${sanitizeForPath(artist)}/${leaf}`;
+    case "letter":
+      return `${letterBucket(artist)}/${leaf}`;
+    default:
+      return leaf;
+  }
+};

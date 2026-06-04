@@ -115,6 +115,12 @@ const validateCookiesBrowserParam = (
   return ["--cookies-from-browser", val];
 };
 
+export type VideoQuality = "720" | "1080" | "best";
+
+/** yt-dlp -S Sortierausdruck für die gewählte Maximal-Qualität. */
+export const videoSortArg = (quality?: VideoQuality): string =>
+  quality === "720" ? "ext,res:720" : quality === "best" ? "ext" : "ext,res:1080";
+
 /**
  * Download a youtube video from direct link (watch URL or ID) and save to provided path.
  * Equivalent shell: yt-dlp -S "ext,res:1080" -o '${path}' -- ${link}
@@ -345,6 +351,7 @@ export const downloadYoutubeVideoWithProgress = (
   path: string,
   onProgress: (p: YoutubeDownloadProgress) => void,
   cookiesBrowser?: string,
+  quality?: VideoQuality,
 ): Effect.Effect<void, Error, never> =>
   Effect.tryPromise({
     try: async () => {
@@ -352,7 +359,7 @@ export const downloadYoutubeVideoWithProgress = (
 
       const baseArgs = [
         "-S",
-        "ext,res:1080",
+        videoSortArg(quality),
         "-o",
         path,
         "--merge-output-format",

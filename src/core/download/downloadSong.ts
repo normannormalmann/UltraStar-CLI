@@ -1,13 +1,16 @@
 import { mkdir, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
-import { sanitizeForPath } from "./naming.ts";
+import { type FolderLayout, songRelativePath } from "./naming.ts";
 import { downloadCoverById } from "../api/usdb/cover.ts";
 import { getLyricsById } from "../api/usdb/lyrics.ts";
 import type { Song } from "../api/usdb/search.ts";
 import type { YoutubeLink } from "../api/usdb/youtube.ts";
 import { getYoutubeLinksById } from "../api/usdb/youtube.ts";
-import { downloadYoutubeVideoWithProgress } from "../api/youtube/download.ts";
+import {
+  type VideoQuality,
+  downloadYoutubeVideoWithProgress,
+} from "../api/youtube/download.ts";
 import type { YoutubeVideo } from "../api/youtube/search.ts";
 import { searchYoutubeVideos } from "../api/youtube/search.ts";
 
@@ -18,6 +21,8 @@ export type DownloadSongParams = {
   cookiesBrowser?: string; // e.g. "edge", "chrome", "firefox"
   onProgress?: (p: number) => void; // 0..1
   onWarning?: (warnings: string[]) => void; // For optional failures (e.g., cover)
+  folderLayout?: FolderLayout;
+  videoQuality?: VideoQuality;
 };
 
 export type DownloadSongResult = {
@@ -32,8 +37,9 @@ export const downloadSong = (
     const { song, cookie, onProgress, onWarning } = params;
     const baseDir = params.baseDir ?? join(process.cwd(), "songs");
 
-    const dirName = sanitizeForPath(`${song.artist} - ${song.title}`);
-    const songDir = join(baseDir, dirName);
+    const relPath = songRelativePath(song.artist, song.title, params.folderLayout ?? "flat");
+    const dirName = relPath.split("/").pop() as string;
+    const songDir = join(baseDir, relPath);
 
     // ensure directories
     yield* Effect.tryPromise({
@@ -182,6 +188,7 @@ export const downloadSong = (
           updateOverallProgress();
         },
         params.cookiesBrowser,
+        params.videoQuality,
       );
 
       // Verify file was actually written
