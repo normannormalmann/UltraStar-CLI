@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { normalizeGenre } from "./normalize.ts";
+import { cleanupSearchQuery, normalizeGenre } from "./normalize.ts";
 import {
+  artistMatches,
   type GenreLookupResult,
   type GenreProvider,
-  artistMatches,
 } from "./provider.ts";
 
 const USER_AGENT =
@@ -21,10 +21,16 @@ type MbSearch = {
 export const pickMusicbrainzResult = (
   res: MbSearch,
   artist: string,
+  cleanedArtist?: string,
 ): { genre: string; year?: number } | null => {
   for (const rec of res.recordings ?? []) {
     const credit = rec["artist-credit"]?.[0]?.name;
-    if (!credit || !artistMatches(credit, artist)) continue;
+    if (
+      !credit ||
+      (!artistMatches(credit, artist) &&
+        !(cleanedArtist && artistMatches(credit, cleanedArtist)))
+    )
+      continue;
     const tags = [...(rec.tags ?? [])].sort(
       (a, b) => (b.count ?? 0) - (a.count ?? 0),
     );
@@ -48,8 +54,9 @@ export const musicbrainzProvider: GenreProvider = {
   minDelayMs: 1100,
   lookup: (artist, title) =>
     Effect.gen(function* () {
+      const cleaned = cleanupSearchQuery(artist, title);
       const query = encodeURIComponent(
-        `artist:"${artist}" AND recording:"${title}"`,
+        `artist:"${cleaned.artist}" AND recording:"${cleaned.title}"`,
       );
       const res = yield* Effect.tryPromise({
         try: async () => {
@@ -63,6 +70,10 @@ export const musicbrainzProvider: GenreProvider = {
         catch: (e) =>
           e instanceof Error ? e : new Error("MusicBrainz request failed"),
       });
-      return pickMusicbrainzResult(res, artist) as GenreLookupResult;
+      return pickMusicbrainzResult(
+        res,
+        artist,
+        cleaned.artist,
+      ) as GenreLookupResult;
     }),
 };

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { normalizeGenre } from "./normalize.ts";
+import { cleanupSearchQuery, normalizeGenre } from "./normalize.ts";
 import type { GenreLookupResult, GenreProvider } from "./provider.ts";
 
 type LastfmTopTags = {
@@ -21,9 +21,10 @@ export const makeLastfmProvider = (apiKey: string): GenreProvider => ({
   minDelayMs: 250,
   lookup: (artist, title) =>
     Effect.gen(function* () {
+      const cleaned = cleanupSearchQuery(artist, title);
       const url =
         "https://ws.audioscrobbler.com/2.0/?method=track.gettoptags" +
-        `&artist=${encodeURIComponent(artist)}&track=${encodeURIComponent(title)}` +
+        `&artist=${encodeURIComponent(cleaned.artist)}&track=${encodeURIComponent(cleaned.title)}` +
         `&api_key=${encodeURIComponent(apiKey)}&format=json&autocorrect=1`;
       const res = yield* Effect.tryPromise({
         try: async () => {

@@ -65,6 +65,17 @@ enrichGenres(entriesProvider, lookup, opts): Effect<EnrichResult, Error>
 
 Kurzer Lauf mit Abbruch nach ~20–50 Songs: Trefferquote plausibel, Genres normalisiert, song.txt-Stichprobe enthält `#GENRE`, Facetten-Dropdown wächst. Danach Volllauf nach Belieben des Nutzers.
 
+## Nachtrag: Trefferquoten-Verbesserung (Volllauf-Befund 2026-06-05)
+
+Erster Deezer-Volllauf: 7.630 von 12.657 gefunden (60%); 5.027 Misses. Stichproben-Analyse ergab vier Ursachen: (1) Klammer-/Bracket-Zusätze im Titel (`[DUET]`, `(TV)`, `(Remix)` — 1.236 Fälle), (2) typografische Apostrophe (`Scatman’s`), (3) Featuring-Ketten im Artist (`X feat. Y`), (4) erster Album-Kandidat ohne Genre-Daten (z.B. Toto – Hold The Line).
+
+**Lösung (nur Such-Query und Kandidatenwahl; gespeicherte Daten unverändert):**
+- `cleanupSearchQuery` (pur, in `normalize.ts` oder eigenem Modul): Titel — trailing `(...)`/`[...]`-Gruppen strippen; typografische Apostrophe/Anführungszeichen → ASCII. Artist — ab ` feat. `/` ft. `/` featuring ` abschneiden (case-insensitiv); echte `&`-Bands bleiben unangetastet.
+- **Deezer-Mehrkandidaten:** `pickDeezerTrack` → `pickDeezerTracks` (bis zu 3 Artist-Matches); `lookup` prüft deren Alben der Reihe nach, bis eines ein Genre liefert.
+- Beide Maßnahmen gelten für alle Provider (cleanup) bzw. Deezer (Kandidaten); `artistMatches` vergleicht weiterhin gegen den ORIGINAL-Artist UND den bereinigten (Featuring-Schnitt darf den Match nicht verhindern).
+
+Befund am Rande: Deezers `track.bpm` liefert in der Praxis 0 (4.400/4.400) — `realBpm` bleibt im Schema, wird aber von Deezer nicht gefüllt.
+
 ## Bewusst nicht enthalten
 
 - Mood/Stimmungs-Felder (Datenlage), Tempo-/Explicit-FILTER in der UI (Felder werden nur erfasst; Filter ist trivialer Folgeschritt, sobald Datenabdeckung sichtbar ist), Multi-Provider-Fallback-Kaskade (eine Quelle pro Lauf; erneuter Lauf mit anderer Quelle ergänzt nur weiterhin Fehlendes).

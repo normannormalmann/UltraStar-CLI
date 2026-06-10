@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { normalizeGenre } from "./normalize.ts";
+import { cleanupSearchQuery, normalizeGenre } from "./normalize.ts";
 import {
+  artistMatches,
   type GenreLookupResult,
   type GenreProvider,
-  artistMatches,
 } from "./provider.ts";
 
 type DeezerSearch = {
@@ -31,14 +31,21 @@ export type DeezerTrackPick = {
 export const pickDeezerTrack = (
   res: DeezerSearch,
   artist: string,
+  cleanedArtist?: string,
 ): DeezerTrackPick => {
   for (const t of res.data ?? []) {
     if (!t.album?.id || !t.artist?.name) continue;
-    if (!artistMatches(t.artist.name, artist)) continue;
+    if (
+      !artistMatches(t.artist.name, artist) &&
+      !(cleanedArtist && artistMatches(t.artist.name, cleanedArtist))
+    )
+      continue;
     return {
       albumId: t.album.id,
       ...(t.bpm && t.bpm > 0 ? { realBpm: t.bpm } : {}),
-      ...(t.explicit_lyrics !== undefined ? { explicit: t.explicit_lyrics } : {}),
+      ...(t.explicit_lyrics !== undefined
+        ? { explicit: t.explicit_lyrics }
+        : {}),
     };
   }
   return null;
@@ -73,11 +80,14 @@ export const deezerProvider: GenreProvider = {
   minDelayMs: 250,
   lookup: (artist, title) =>
     Effect.gen(function* () {
-      const q = encodeURIComponent(`artist:"${artist}" track:"${title}"`);
+      const cleaned = cleanupSearchQuery(artist, title);
+      const q = encodeURIComponent(
+        `artist:"${cleaned.artist}" track:"${cleaned.title}"`,
+      );
       const search = (yield* fetchJson(
         `https://api.deezer.com/search?q=${q}&limit=5`,
       )) as DeezerSearch;
-      const pick = pickDeezerTrack(search, artist);
+      const pick = pickDeezerTrack(search, artist, cleaned.artist);
       if (!pick) return null as GenreLookupResult;
       const album = (yield* fetchJson(
         `https://api.deezer.com/album/${pick.albumId}`,

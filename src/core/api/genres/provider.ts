@@ -22,8 +22,7 @@ export type GenreProvider = {
 
 /** Artist-Vergleich für Treffer-Validierung: lowercase, ohne Sonderzeichen. */
 export const artistMatches = (a: string, b: string): boolean => {
-  const norm = (s: string) =>
-    s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+  const norm = (s: string) => s.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
   const na = norm(a);
   const nb = norm(b);
   return na.length > 0 && (na === nb || na.includes(nb) || nb.includes(na));

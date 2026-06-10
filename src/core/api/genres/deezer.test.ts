@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { pickDeezerTrack, parseDeezerAlbum } from "./deezer.ts";
+import { parseDeezerAlbum, pickDeezerTrack } from "./deezer.ts";
 
 const SEARCH_FIXTURE = {
   data: [
@@ -45,5 +45,7 @@ test("parses album genre (normalized) and year", () => {
 });
 
 test("returns null when album has no genres", () => {
-  expect(parseDeezerAlbum({ release_date: "2012-06-15", genres: { data: [] } })).toBeNull();
+  expect(
+    parseDeezerAlbum({ release_date: "2012-06-15", genres: { data: [] } }),
+  ).toBeNull();
 });

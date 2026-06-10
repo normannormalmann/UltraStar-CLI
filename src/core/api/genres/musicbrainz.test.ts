@@ -25,7 +25,11 @@ test("returns null on artist mismatch or missing tags", () => {
   expect(pickMusicbrainzResult(FIXTURE, "Queen")).toBeNull();
   expect(
     pickMusicbrainzResult(
-      { recordings: [{ title: "X", "artist-credit": [{ name: "ABBA" }], tags: [] }] },
+      {
+        recordings: [
+          { title: "X", "artist-credit": [{ name: "ABBA" }], tags: [] },
+        ],
+      },
       "ABBA",
     ),
   ).toBeNull();
