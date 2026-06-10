@@ -1,154 +1,111 @@
-# UltraStar CLI
+# UltraStar - Dirty Little Helper
 
-![UltraStar CLI Demo](https://raw.githubusercontent.com/martiinii/UltraScrap-cli/main/media/demo.gif)
+**Die Desktop-App, die deine UltraStar-Karaoke-Sammlung aufbaut, pflegt und durchsuchbar macht.**
 
-### What is this?
-UltraStar CLI is the fastest and most powerful tool to build, manage, and scale your local UltraStar karaoke song library. Search the biggest UltraStar database, preview results, and download complete, ready-to-sing folders in one go — lyrics, cover, and video included. No manual stitching. No messy files. Just search, queue, and sing.
+Durchsuche die größte UltraStar-Datenbank (USDB), lade komplette, sofort singbare Song-Ordner — Text, Cover und Video in einem Rutsch — und verwalte zehntausende Songs mit echten Filtern. Kein manuelles Zusammensuchen, keine kaputten Ordner. Suchen, laden, singen.
 
-### ✨ Why it’s awesome:
-- **Blazing Fast TUI:** Powered by Ink (React for terminals), offering a modern, responsive, and intuitive command-line interface.
-- **Smart Sourcing:** Pulls accurate metadata and lyrics from the largest UltraStar DB and automatically resolves/fetches matching high-quality video formats via YouTube.
-- **Robust Bulk Downloading:** Queue thousands of songs at once. Process entire artist discographies or massive playlists in parallel without manual intervention.
-- **Crash-Resilient Architecture:** Downloads are managed by a persistent queue. If you close the app or your PC crashes, your queue is saved and will resume exactly where it left off.
-- **Automated Repair Mode:** Accidentally deleted videos? Encountered a YouTube bot-block? The built-in repair tool scans your local library and surgically re-downloads only the missing or broken files without touching your intact metadata.
-- **Strict Duplicate Prevention:** The system remembers your download history. It prevents double-downloads across sessions, saving your bandwidth and storage.
-- **Cross‑platform:** Works seamlessly on Linux, macOS, and Windows.
+➡️ **Neu hier? [Zum Schritt-für-Schritt-Tutorial](docs/TUTORIAL.md)**
 
 ---
 
-## 🚀 Requirements
+## ✨ Funktionen
 
-- `yt-dlp` (required for downloading video and audio streams securely)
-- `ffmpeg` (required by yt-dlp to merge video and audio streams)
-- Node.js (via `npm`) or [Bun](https://bun.sh) (Highly Recommended for maximum performance)
+### Suchen & Herunterladen
+- **USDB-Suche mit echten Filtern:** Sprache, Genre, Jahr, Golden Notes, Songcheck — serverseitig über die gesamte Datenbank, mit wählbarer Sortierung (zuletzt geändert, Interpret, Titel, Jahr, Bewertung, Views). Filteränderungen suchen automatisch neu.
+- **Bestands-Abgleich direkt in der Suche:** Bereits vorhandene Songs sind markiert (✓) und werden bei Massen-Downloads automatisch übersprungen — auch importierte Bestände. Umschaltbar: alle / nur fehlende / nur vorhandene Treffer anzeigen.
+- **Massen-Downloads:** Einzelsong, ganze Ergebnisseite, alle Seiten einer Suche oder die komplette Datenbank in die Queue — mit Fortschritt, Abbruch, Wiederaufnahme nach Absturz und Retry fehlgeschlagener Downloads.
+- **Cover-Vorschau** in Suchergebnissen und Bibliothek (inkl. lokaler Cover importierter Songs).
+- **VIDEOGAP-Korrekturen aus USDB-Kommentaren** werden automatisch übernommen — Videos laufen synchron zum Text.
 
-### 1. Install yt-dlp
-- **macOS:** `brew install yt-dlp` or `pipx install yt-dlp`
-- **Windows:** `winget install yt-dlp.yt-dlp` or `choco install yt-dlp`
-- **Linux:** Use your package manager (e.g., `apt install yt-dlp`, `pacman -S yt-dlp`)
+### Bibliothek
+- **Archiv-Import:** Bestehende Sammlungen (auch zehntausende Songs, auch verschachtelte Ordnerstrukturen) ohne erneute Downloads übernehmen — inklusive Metadaten aus den song.txt-Dateien.
+- **Facetten-Filter:** Sprache, Genre, Jahr-Bereich und Textsuche kombinierbar; Dropdown-Zähler passen sich der aktuellen Auswahl an; mehrsprachige Songs erscheinen unter jeder ihrer Sprachen. Sortierung A–Z, nach Jahr oder Neueste zuerst. Endloses Scrollen statt Seitenlimits.
+- **Genre-Anreicherung:** Fehlende Genres (und Jahre) per Online-Datenbank nachtragen — wählbar Deezer (ohne Anmeldung), Last.fm (API-Key) oder MusicBrainz. Läuft im Hintergrund, ist jederzeit abbrechbar und macht beim nächsten Start nahtlos weiter. Schreibt auf Wunsch direkt in die song.txt-Dateien (#GENRE).
+- **Video-Reparatur:** Findet fehlende/defekte Videos und lädt gezielt nur diese nach — Metadaten bleiben unangetastet.
 
-### 2. Install a runtime
-- **Node.js:** We recommend installing via [nvm](https://github.com/nvm-sh/nvm)
-- **Bun (Recommended):** `curl -fsSL https://bun.sh/install | bash` (Windows users can install via PowerShell: `powershell -c "irm bun.sh/install.ps1 | iex"`)
+### Komfort
+- **Alles automatisch:** USDB-Konto, yt-dlp und ffmpeg richtet die App selbst ein — kein manuelles Setup nötig.
+- **Konfigurierbar:** Ordnerstruktur neuer Downloads (flach, nach Interpret, nach Anfangsbuchstabe), Download-Parallelität (1–5), maximale Video-Qualität (720p/1080p/beste), YouTube-Cookie-Browser.
+- **Duplikatschutz über Sitzungen hinweg**, Fehl-Download-Protokoll als Excel-Datei, dunkles Design.
 
 ---
 
-## ⚡ Quick Start (Run directly from GitHub)
+## 🚀 Installation (Windows)
 
-You can run this exact version of the CLI directly from GitHub using Bun. The first run will automatically check your environment (yt-dlp, ffmpeg) and initialize a secure session.
+1. Neueste `UltraStar - Dirty Little Helper Setup *.exe` von den [GitHub Releases](https://github.com/normannormalmann/ultrastar-dlh/releases) herunterladen.
+2. Ausführen. Windows SmartScreen warnt bei unsignierten Apps — **„Weitere Informationen" → „Trotzdem ausführen"**.
+3. Fertig. Beim ersten Start lädt die App yt-dlp und ffmpeg automatisch herunter und legt ein USDB-Konto an.
 
-### Bun (Recommended)
+Ausführliche Einrichtung inkl. Archiv-Import: **[Tutorial](docs/TUTORIAL.md)**
+
+---
+
+## 🖥️ Terminal-Version (CLI/TUI)
+
+Für Server, Power-User und macOS/Linux gibt es weiterhin die Terminal-Oberfläche mit demselben Kern (Suche, Queue, Reparatur):
+
 ```bash
+# Voraussetzungen: yt-dlp, ffmpeg, Bun (https://bun.sh)
 bunx --bun github:normannormalmann/ultrastar-dlh
 ```
 
-*By default, your songs will be saved under `./songs/Artist - Title/` relative to where you run the command. You can change this path within the app's Setup menu.*
-
----
-
-## Desktop App: UltraStar - Dirty Little Helper (Windows)
-
-Die Desktop-App **„UltraStar - Dirty Little Helper"** bietet dieselben
-Funktionen wie die CLI (Suche mit Filtern, Download, Queue, Archiv-Import,
-Reparatur) mit grafischer Oberfläche.
-
-**Download:** Neueste `UltraStar - Dirty Little Helper Setup *.exe` von den
-[GitHub Releases](https://github.com/normannormalmann/ultrastar-dlh/releases)
-herunterladen und ausführen. yt-dlp und ffmpeg lädt die App bei Bedarf
-selbst herunter (Einstellungen → Tools).
-
-**Entwicklung:**
-
-```bash
-bun install
-bun run desktop:dev    # Dev-Modus mit Hot Reload
-bun run desktop:dist   # Windows-Installer bauen (dist/)
-```
-
----
-
-## ⌨️ Keyboard Shortcuts & Controls
-
-To prevent accidental inputs while typing in the search bar, all core commands are mapped securely using the `Ctrl` modifier.
-
-### Global & Search Form
-| Shortcut | Action |
+| Kürzel | Aktion |
 | :--- | :--- |
-| `Tab` | Switch focus between Artist and Title fields |
-| `Enter` | Submit search |
-| `Ctrl+S` | Open **Setup** (configure download directory and browser cookies) |
-| `Ctrl+V` | Open **Repair Mode** (scan library for broken/missing videos) |
-| `Esc` | Quit application |
-
-### Search Results & Navigation
-| Shortcut | Action |
-| :--- | :--- |
-| `↑` / `↓` | Select a song from the list |
-| `←` / `→` | Navigate between pages |
-| `Enter` | **Download immediately** (bypasses the queue) |
-| `Ctrl+E` | Edit current search |
-| `Ctrl+R` | Refresh results |
-| `Esc` | Back to search form |
-
-### 📥 Bulk Downloading & Queue Management
-The CLI features a powerful, memory-safe queue system. You can queue up thousands of songs, and the CLI will process them in parallel in the background.
-
-| Shortcut | Action |
-| :--- | :--- |
-| `Ctrl+Q` | Add the currently selected song to the queue |
-| `Ctrl+A` | Add **all songs on the current page** to the queue |
-| `Ctrl+P` | Fetch and add **every page of the search result** to the queue (Great for downloading an artist's entire discography) |
-| `Ctrl+D` | **Start processing the queue** |
+| `Tab` / `Enter` | Feld wechseln / Suchen |
+| `↑↓` `←→` | Song wählen / Seite blättern |
+| `Enter` | Sofort herunterladen |
+| `Ctrl+Q` / `Ctrl+A` / `Ctrl+P` | Song / Seite / alle Seiten in die Queue |
+| `Ctrl+D` | Queue starten |
+| `Ctrl+V` | Reparatur-Modus |
+| `Ctrl+S` | Setup (Pfad, Cookie-Browser) |
+| `Esc` | Zurück / Beenden |
 
 ---
 
-## 🛠️ How it works (Under the hood)
+## 🛠️ Wie es funktioniert
 
-1. **Search:** The app securely authenticates with USDB and queries their database.
-2. **Resolve:** If a song lacks a direct YouTube ID on USDB, the app utilizes `yt-dlp` to perform a targeted, heuristic search on YouTube to find the best matching karaoke/audio track.
-3. **Download:** The video and audio are pulled in high quality via `yt-dlp` and merged via `ffmpeg`.
-4. **Assemble:** The app fetches the cover art and lyrics, then formats a perfect, standard-compliant `song.txt` file compatible with UltraStar Deluxe, Vocaluxe, and UltraStar Play.
-5. **Track:** Successful and failed downloads are recorded locally (`downloaded.json` and `failed-downloads.xlsx`) to prevent duplicates and make retries easy.
+1. **Suche:** Die App authentifiziert sich bei USDB und fragt die Datenbank ab.
+2. **Auflösen:** Video-Links kommen aus den USDB-Kommentaren (inkl. dort hinterlegter VIDEOGAP-Korrekturen); fehlt einer, sucht die App gezielt auf YouTube.
+3. **Laden:** Video/Audio via `yt-dlp` in der konfigurierten Qualität, zusammengeführt mit `ffmpeg`.
+4. **Zusammensetzen:** Cover und Songtext werden geholt und als standardkonforme `song.txt` abgelegt — kompatibel mit UltraStar Deluxe, Vocaluxe und UltraStar Play.
+5. **Verfolgen:** Erfolge und Fehlschläge werden lokal protokolliert (`downloaded.json`, `failed-downloads.xlsx`) — für Duplikatschutz und einfache Retries.
 
 ---
 
-## 👨‍💻 Development
+## 👨‍💻 Entwicklung
 
-This project uses Bun natively. You can still run the built CLI with Node, but development is optimized for Bun.
+Das Projekt nutzt Bun nativ (TypeScript, Effect, Electron + React, Ink für die TUI).
 
-### Setup Repository
 ```bash
 git clone https://github.com/normannormalmann/ultrastar-dlh.git
 cd ultrastar-dlh
 bun install
+
+bun run start          # TUI im Dev-Modus
+bun run desktop:dev    # Desktop-App mit Hot Reload
+bun run test           # Unit-Tests
+bun run test:e2e       # Playwright-Smoke-Test (baut vorher)
+bun run desktop:dist   # Windows-Installer bauen (dist/)
+bun run lint           # Biome
 ```
 
-### Start the TUI in Development Mode
-```bash
-bun run start
-```
-
-### Build the CLI (Production Artifacts)
-```bash
-bun run build
-# Artifacts are written to ./build/dist
-```
-
-### Linting & Formatting (Biome)
-```bash
-bun run lint
-bun run format
-```
+Architektur: `src/core/` (geteilter Kern: USDB-API, Downloads, Storage, Genre-Provider) ← `src/desktop/` (Electron: Main/Preload/Renderer mit typisiertem IPC-Vertrag) und `src/tui/` (Ink). Design-Dokumente unter `docs/superpowers/`.
 
 ---
 
-## 🚨 Troubleshooting & FAQ
+## 🚨 Problemlösung
 
-- **YouTube Bot Protection Blocks (Sign in to confirm you're not a bot):** YouTube frequently blocks automated downloads. Press `Ctrl+S` to open the setup menu and provide the name of your primary browser (e.g., `edge`, `chrome`). The app will extract your active YouTube session cookies. *Make sure to close the browser before downloading so the cookie database isn't locked.*
-- **yt-dlp / ffmpeg not found:** Ensure both tools are installed and added to your system's `PATH` environment variable.
-- **Segmentation Faults / OOM Crashes:** Ensure you are using the latest version of the CLI. Older versions had memory leaks during massive bulk downloads, which have been fixed via debounced batch-writing and yielded queue processing.
-- **Repairing Broken Songs:** If a download failed halfway, press `Ctrl+V` in the main menu. The app will locate the broken folders and securely patch them up.
+- **„Sign in to confirm you're not a bot" (YouTube-Bot-Schutz):** In den Einstellungen den Browser wählen, in dem du bei YouTube angemeldet bist — die App nutzt dessen Cookies. Browser vor dem Download schließen (sonst ist die Cookie-Datenbank gesperrt). Alternativ eine `cookies.txt` in den Songs-Ordner legen.
+- **yt-dlp/ffmpeg fehlen:** Einstellungen → Tools → „Fehlende Tools automatisch installieren". Bei Problemen manuell installieren und in den PATH aufnehmen, dann App neu starten.
+- **Songs erscheinen nicht in der Bibliothek:** Erst „Archiv importieren" (übernimmt Bestände), bei extern gelöschten/geänderten Ordnern „Aktualisieren" klicken.
+- **Genre-Lauf bricht ab:** Einfach erneut starten — bereits angereicherte Songs werden übersprungen. Für hartnäckige Fälle die Quelle wechseln (Einstellungen → Genre-Quelle).
 
-## Links
-- [USDB (UltraStar Database)](https://usdb.animux.de) - The largest database of UltraStar lyrics.
-- [UltraStar España](https://ultrastar-es.org/) - Alternative database including full media packages.
+Mehr im **[Tutorial → Problemlösung](docs/TUTORIAL.md#9-problemlösung)**.
+
+## 🔗 Links & Credits
+
+- [USDB (UltraStar Database)](https://usdb.animux.de) — die größte Datenbank für UltraStar-Songtexte
+- [UltraStar Deluxe](https://github.com/UltraStar-Deluxe/USDX) — das Karaoke-Spiel
+- Entstanden als Fork von [UltraScrap-cli](https://github.com/martiinii/UltraScrap-cli) von Marcin Gąsienica-Makowski — danke! 🙏
+
+Lizenz: [MIT](LICENSE.md)
