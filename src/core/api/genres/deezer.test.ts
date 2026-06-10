@@ -1,5 +1,9 @@
 import { expect, test } from "bun:test";
-import { parseDeezerAlbum, pickDeezerTrack } from "./deezer.ts";
+import {
+  parseDeezerAlbum,
+  pickDeezerTrack,
+  pickDeezerTracks,
+} from "./deezer.ts";
 
 const SEARCH_FIXTURE = {
   data: [
@@ -48,4 +52,38 @@ test("returns null when album has no genres", () => {
   expect(
     parseDeezerAlbum({ release_date: "2012-06-15", genres: { data: [] } }),
   ).toBeNull();
+});
+
+test("pickDeezerTracks returns up to 3 artist-matching candidates in order", () => {
+  const fixture = {
+    data: [
+      { id: 1, title: "T", artist: { name: "Trailerpark" }, album: { id: 11 } },
+      {
+        id: 2,
+        title: "T2",
+        artist: { name: "Karaoke Crew" },
+        album: { id: 22 },
+      },
+      {
+        id: 3,
+        title: "T3",
+        artist: { name: "Trailerpark" },
+        album: { id: 33 },
+      },
+      {
+        id: 4,
+        title: "T4",
+        artist: { name: "trailerpark" },
+        album: { id: 44 },
+      },
+      {
+        id: 5,
+        title: "T5",
+        artist: { name: "Trailerpark" },
+        album: { id: 55 },
+      },
+    ],
+  };
+  const picks = pickDeezerTracks(fixture, "Trailerpark", "Trailerpark");
+  expect(picks.map((p) => p.albumId)).toEqual([11, 33, 44]);
 });

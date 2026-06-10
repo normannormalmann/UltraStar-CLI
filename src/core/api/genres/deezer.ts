@@ -28,28 +28,40 @@ export type DeezerTrackPick = {
   explicit?: boolean;
 } | null;
 
-export const pickDeezerTrack = (
+export const pickDeezerTracks = (
   res: DeezerSearch,
   artist: string,
   cleanedArtist?: string,
-): DeezerTrackPick => {
+): NonNullable<DeezerTrackPick>[] => {
+  const results: NonNullable<DeezerTrackPick>[] = [];
+  const seenAlbums = new Set<number>();
   for (const t of res.data ?? []) {
+    if (results.length >= 3) break;
     if (!t.album?.id || !t.artist?.name) continue;
+    if (seenAlbums.has(t.album.id)) continue;
     if (
       !artistMatches(t.artist.name, artist) &&
       !(cleanedArtist && artistMatches(t.artist.name, cleanedArtist))
     )
       continue;
-    return {
+    seenAlbums.add(t.album.id);
+    results.push({
       albumId: t.album.id,
       ...(t.bpm && t.bpm > 0 ? { realBpm: t.bpm } : {}),
       ...(t.explicit_lyrics !== undefined
         ? { explicit: t.explicit_lyrics }
         : {}),
-    };
+    });
   }
-  return null;
+  return results;
 };
+
+/** @deprecated Use pickDeezerTracks instead. */
+export const pickDeezerTrack = (
+  res: DeezerSearch,
+  artist: string,
+  cleanedArtist?: string,
+): DeezerTrackPick => pickDeezerTracks(res, artist, cleanedArtist)[0] ?? null;
 
 export const parseDeezerAlbum = (
   album: DeezerAlbum,
@@ -87,17 +99,19 @@ export const deezerProvider: GenreProvider = {
       const search = (yield* fetchJson(
         `https://api.deezer.com/search?q=${q}&limit=5`,
       )) as DeezerSearch;
-      const pick = pickDeezerTrack(search, artist, cleaned.artist);
-      if (!pick) return null as GenreLookupResult;
-      const album = (yield* fetchJson(
-        `https://api.deezer.com/album/${pick.albumId}`,
-      )) as DeezerAlbum;
-      const parsed = parseDeezerAlbum(album);
-      if (!parsed) return null as GenreLookupResult;
-      return {
-        ...parsed,
-        ...(pick.realBpm !== undefined ? { realBpm: pick.realBpm } : {}),
-        ...(pick.explicit !== undefined ? { explicit: pick.explicit } : {}),
-      } as GenreLookupResult;
+      const picks = pickDeezerTracks(search, artist, cleaned.artist);
+      for (const pick of picks) {
+        const album = (yield* fetchJson(
+          `https://api.deezer.com/album/${pick.albumId}`,
+        )) as DeezerAlbum;
+        const parsed = parseDeezerAlbum(album);
+        if (!parsed) continue;
+        return {
+          ...parsed,
+          ...(pick.realBpm !== undefined ? { realBpm: pick.realBpm } : {}),
+          ...(pick.explicit !== undefined ? { explicit: pick.explicit } : {}),
+        } as GenreLookupResult;
+      }
+      return null as GenreLookupResult;
     }),
 };
